@@ -145,8 +145,81 @@ tr:hover td{background:#fdf9f8;}
 .tab{padding:8px 18px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--light);border-bottom:2px solid transparent;margin-bottom:-2px;}
 .tab.on{color:var(--rose);border-bottom-color:var(--rose);}
 
-::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-thumb{background:var(--rose-m);border-radius:2px;}
+
+/* ===== MOBILE RESPONSIVE ===== */
+/* Mobile bottom navigation */
+.mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--dark);z-index:500;padding:6px 0 max(6px,env(safe-area-inset-bottom));border-top:1px solid rgba(255,255,255,.1);}
+.mob-nav-inner{display:flex;justify-content:space-around;align-items:center;}
+.mob-ni{display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 2px;cursor:pointer;color:rgba(255,255,255,.5);font-size:9px;min-width:44px;min-height:44px;justify-content:center;border:none;background:none;font-family:inherit;}
+.mob-ni.on{color:var(--rose-m);}
+.mob-ni .ico{font-size:22px;line-height:1;}
+.mob-more-menu{display:none;position:fixed;bottom:65px;left:0;right:0;background:var(--dark);z-index:499;padding:12px 8px;border-top:1px solid rgba(255,255,255,.1);}
+.mob-more-menu.open{display:block;}
+.mob-more-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;}
+.mob-more-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px;cursor:pointer;color:rgba(255,255,255,.6);font-size:10px;border-radius:8px;border:none;background:none;font-family:inherit;width:100%;}
+.mob-more-item.on{color:var(--rose-m);background:rgba(196,114,106,.1);}
+.mob-more-item .ico{font-size:22px;}
+.mob-overlay{display:none;position:fixed;inset:0;z-index:498;}
+.mob-overlay.open{display:block;}
+/* Hamburger */
+.mob-menu-btn{display:none;background:none;border:none;font-size:24px;cursor:pointer;color:var(--dark);padding:6px;min-width:44px;min-height:44px;align-items:center;justify-content:center;}
+.sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:399;}
+.sb-overlay.open{display:block;}
+
+@media (max-width:768px){
+  /* Sidebar slides in */
+  .sb{position:fixed;right:0;top:0;bottom:0;z-index:400;transform:translateX(105%);transition:transform .25s;width:260px;overflow-y:auto;}
+  .sb.open{transform:translateX(0);}
+  /* Main full width */
+  .main{width:100%;min-height:100vh;}
+  .app{flex-direction:column;}
+  /* Show mobile elements */
+  .mob-nav{display:block;}
+  .mob-menu-btn{display:flex;}
+  /* Topbar */
+  .topbar{padding:0 10px;height:52px;}
+  .topbar h2{font-size:14px;}
+  .topbar-date{display:none;}
+  /* Content + bottom nav space */
+  .content{padding:12px 10px 80px;}
+  /* Grids */
+  .g4{grid-template-columns:1fr 1fr;}
+  .g3{grid-template-columns:1fr 1fr;}
+  .g2{grid-template-columns:1fr;}
+  .fr3{grid-template-columns:1fr 1fr;}
+  .fr{grid-template-columns:1fr;}
+  /* Cards */
+  .cv{font-size:22px;}
+  /* Tables scroll */
+  .panel{overflow-x:auto;}
+  table{min-width:480px;}
+  th,td{padding:8px 10px;font-size:12px;}
+  /* Modals from bottom */
+  .ov{align-items:flex-end;}
+  .modal{border-radius:20px 20px 0 0;width:100%;max-width:100%;max-height:92vh;}
+  /* Service picker 2 cols */
+  .spg{grid-template-columns:1fr 1fr;}
+  /* Inputs larger touch targets */
+  .fg input,.fg select,.fg textarea{font-size:16px;padding:10px 12px;}
+  .btn{min-height:40px;}
+  .btn-sm{min-height:34px;}
+  /* Search full width */
+  .sinp{width:100%;}
+  .swrap{width:100%;}
+  /* Panel header stack */
+  .ph{flex-wrap:wrap;gap:8px;}
+  /* Mbar */
+  .mbar{gap:5px;padding:8px;}
+  /* Calendar horizontal scroll */
+  #calgrid{display:flex;overflow-x:auto;gap:5px;padding-bottom:8px;-webkit-overflow-scrolling:touch;}
+  .cday{min-width:110px;flex-shrink:0;}
+  /* Month bar selects */
+  .msel{font-size:13px;}
+  /* Hide topbar backup buttons on mobile */
+  .topbar-backup{display:none;}
+}
 </style>
 </head>
 <body>
@@ -176,15 +249,18 @@ tr:hover td{background:#fdf9f8;}
 <div class="main">
   <div class="topbar">
     <h2 id="ptitle">الرئيسية</h2>
-    <div style="display:flex;align-items:center;gap:8px">
+    <div style="display:flex;align-items:center;gap:6px">
       <span id="sync-status" style="font-size:11px;color:var(--light)">جاري الاتصال...</span>
-      <button class="btn btn-sm" onclick="syncFromDB()" style="background:#f0ede8;color:var(--mid);border:1px solid var(--border);font-size:11px">🔄 تحديث</button>
-      <button class="btn btn-sm" onclick="exportData()" style="background:#E8F2EA;color:#3A7A4A;border:1px solid #B8D8C0;font-size:12px">⬇ نسخ احتياطي</button>
-      <label class="btn btn-sm" style="background:#EAF2FF;color:#1A4A8A;border:1px solid #B0CCEE;font-size:12px;cursor:pointer">
-        ⬆ استيراد
-        <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(this)">
-      </label>
+      <div class="topbar-backup" style="display:flex;gap:6px;align-items:center">
+        <button class="btn btn-sm" onclick="syncFromDB()" style="background:#f0ede8;color:var(--mid);border:1px solid var(--border);font-size:11px">🔄</button>
+        <button class="btn btn-sm" onclick="exportData()" style="background:#E8F2EA;color:#3A7A4A;border:1px solid #B8D8C0;font-size:12px">⬇ نسخ</button>
+        <label class="btn btn-sm" style="background:#EAF2FF;color:#1A4A8A;border:1px solid #B0CCEE;font-size:12px;cursor:pointer">
+          ⬆ استيراد
+          <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(this)">
+        </label>
+      </div>
       <div class="topbar-date" id="tdate"></div>
+      <button class="mob-menu-btn" onclick="toggleSidebar()">☰</button>
     </div>
   </div>
   <div class="content">
@@ -917,7 +993,69 @@ tr:hover td{background:#fdf9f8;}
   </div>
 </div>
 
-<!-- TOAST -->
+<!-- SIDEBAR OVERLAY -->
+<div class="sb-overlay" id="sb-overlay" onclick="toggleSidebar()"></div>
+
+<!-- MOBILE BOTTOM NAV -->
+<div class="mob-nav">
+  <div class="mob-nav-inner">
+    <button class="mob-ni on" id="mn-dash" onclick="goTo('dash');setMobNav('dash')">
+      <span class="ico">⊞</span><span>الرئيسية</span>
+    </button>
+    <button class="mob-ni" id="mn-book" onclick="goTo('book');setMobNav('book')">
+      <span class="ico">◷</span><span>الحجوزات</span>
+    </button>
+    <button class="mob-ni" id="mn-inv" onclick="goTo('inv');setMobNav('inv')">
+      <span class="ico">◻</span><span>الفواتير</span>
+    </button>
+    <button class="mob-ni" id="mn-cl" onclick="goTo('cl');setMobNav('cl')">
+      <span class="ico">◎</span><span>العملاء</span>
+    </button>
+    <button class="mob-ni" id="mn-more" onclick="toggleMoreMenu()">
+      <span class="ico">⋯</span><span>المزيد</span>
+    </button>
+  </div>
+</div>
+
+<!-- MOBILE MORE MENU -->
+<div class="mob-more-menu" id="mob-more-menu">
+  <div class="mob-more-grid">
+    <button class="mob-more-item" id="mm-exp" onclick="goTo('exp');setMobNav('exp');toggleMoreMenu()">
+      <span class="ico">◈</span><span>المصروفات</span>
+    </button>
+    <button class="mob-more-item" id="mm-tech" onclick="goTo('tech');setMobNav('tech');toggleMoreMenu()">
+      <span class="ico">◆</span><span>الفنيات</span>
+    </button>
+    <button class="mob-more-item" id="mm-prices" onclick="goTo('prices');setMobNav('prices');toggleMoreMenu()">
+      <span class="ico">✦</span><span>الأسعار</span>
+    </button>
+    <button class="mob-more-item" id="mm-offers" onclick="goTo('offers');setMobNav('offers');toggleMoreMenu()">
+      <span class="ico">🎁</span><span>العروض</span>
+    </button>
+    <button class="mob-more-item" id="mm-reports" onclick="goTo('reports');setMobNav('reports');toggleMoreMenu()">
+      <span class="ico">📊</span><span>التقارير</span>
+    </button>
+    <button class="mob-more-item" id="mm-waitlist" onclick="goTo('waitlist');setMobNav('waitlist');toggleMoreMenu()">
+      <span class="ico">⏳</span><span>الانتظار</span>
+    </button>
+    <button class="mob-more-item" id="mm-stock" onclick="goTo('stock');setMobNav('stock');toggleMoreMenu()">
+      <span class="ico">📦</span><span>المخزون</span>
+    </button>
+    <button class="mob-more-item" id="mm-settings" onclick="goTo('settings');setMobNav('settings');toggleMoreMenu()">
+      <span class="ico">⚙️</span><span>الإعدادات</span>
+    </button>
+    <button class="mob-more-item" onclick="exportData();toggleMoreMenu()">
+      <span class="ico">⬇</span><span>نسخ احتياطي</span>
+    </button>
+    <button class="mob-more-item" onclick="document.getElementById('import-file').click();toggleMoreMenu()">
+      <span class="ico">⬆</span><span>استيراد</span>
+    </button>
+    <button class="mob-more-item" onclick="syncFromDB();toggleMoreMenu()">
+      <span class="ico">🔄</span><span>تحديث</span>
+    </button>
+  </div>
+</div>
+<div class="mob-overlay" id="mob-overlay" onclick="toggleMoreMenu()"></div>
 <div id="toast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--dark);color:#fff;padding:10px 22px;border-radius:9px;font-size:13px;opacity:0;transition:opacity .3s;z-index:9999;pointer-events:none"></div>
 
 <!-- CONFIRM MODAL -->
@@ -1113,6 +1251,7 @@ function goTo(id){
   document.querySelectorAll('.ni').forEach(n=>{ if(n.getAttribute('onclick')===`goTo('${id}')`) n.classList.add('on'); });
   const R={dash:rdash,book:rcal,inv:rinv,exp:rexp,cl:rcl,tech:rtech,prices:rprices,offers:rOffers,reports:rreports,waitlist:rWaitlist,stock:rstock,settings:rSettings};
   if(R[id]) R[id]();
+  setMobNav(id);
 }
 
 // ===== MODALS =====
@@ -2342,6 +2481,34 @@ function importData(input) {
     input.value = ''; // reset so same file can be picked again
   };
   reader.readAsText(file);
+}
+
+// ===== MOBILE NAV =====
+function toggleSidebar() {
+  document.querySelector('.sb').classList.toggle('open');
+  document.getElementById('sb-overlay').classList.toggle('open');
+}
+function toggleMoreMenu() {
+  document.getElementById('mob-more-menu').classList.toggle('open');
+  document.getElementById('mob-overlay').classList.toggle('open');
+}
+const MOB_NAV_PAGES = ['dash','book','inv','cl'];
+const MOB_MORE_PAGES = ['exp','tech','prices','offers','reports','waitlist','stock','settings'];
+function setMobNav(id) {
+  // Bottom nav buttons
+  document.querySelectorAll('.mob-ni').forEach(b=>b.classList.remove('on'));
+  const mainBtn = document.getElementById('mn-'+id);
+  if (mainBtn) mainBtn.classList.add('on');
+  else { // it's in "more" menu
+    document.getElementById('mn-more')?.classList.add('on');
+  }
+  // More menu items
+  document.querySelectorAll('.mob-more-item').forEach(b=>b.classList.remove('on'));
+  const moreItem = document.getElementById('mm-'+id);
+  if (moreItem) moreItem.classList.add('on');
+  // Close sidebar if open
+  document.querySelector('.sb')?.classList.remove('open');
+  document.getElementById('sb-overlay')?.classList.remove('open');
 }
 
 // ===== INIT =====
