@@ -729,8 +729,8 @@ function rtech(){
   if(!D.techs.length){c.innerHTML=`<div class="panel" style="grid-column:1/-1"><div class="pb"><p style="color:var(--light);font-size:13px">لا توجد فنيات بعد.</p></div></div>`;return;}
   const now=new Date(), mo=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
   c.innerHTML=D.techs.map(t=>{
-    const tot=D.bks.filter(b=>b.tid===t.id).length;
-    const mth=D.bks.filter(b=>b.tid===t.id&&b.date?.startsWith(mo)).length;
+    const tot=D.invs.filter(i=>i.tn===t.name).length;
+    const mth=D.invs.filter(i=>i.tn===t.name&&i.date?.startsWith(mo)).length;
     return `<div class="panel">
       <div class="ph">
         <div><div style="font-weight:700;font-size:15px">${t.name}</div><div style="font-size:12px;color:var(--light)">${t.role||'فنية'}</div></div>
