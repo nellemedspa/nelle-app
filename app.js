@@ -728,9 +728,35 @@ function rtech(){
   const c=document.getElementById('tech-cards');
   if(!D.techs.length){c.innerHTML=`<div class="panel" style="grid-column:1/-1"><div class="pb"><p style="color:var(--light);font-size:13px">لا توجد فنيات بعد.</p></div></div>`;return;}
   const now=new Date(), mo=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
-  c.innerHTML=D.techs.map(t=>{
-    const tot=D.invs.filter(i=>i.tn===t.name).length;
-    const mth=D.invs.filter(i=>i.tn===t.name&&i.date?.startsWith(mo)).length;
+  const NIRMEEN='نيرمين';
+
+  // First pass: base stats + pedicure breakdown (by line item) for every technician
+  const stats=D.techs.map(t=>{
+    const tInvs=D.invs.filter(i=>i.tn===t.name);
+    const tot=tInvs.length;
+    const mth=tInvs.filter(i=>i.date?.startsWith(mo)).length;
+    const baseRev=tInvs.reduce((s,i)=>s+i.tot,0);
+    let pedCount=0, pedCountMonth=0, pedRev=0;
+    tInvs.forEach(inv=>{
+      (inv.svcs||[]).forEach(s=>{
+        if(s.n&&s.n.includes('باديكير')){
+          pedCount++; pedRev+=(s.p||0);
+          if(inv.date?.startsWith(mo)) pedCountMonth++;
+        }
+      });
+    });
+    return {t,tot,mth,baseRev,pedCount,pedCountMonth,pedRev};
+  });
+
+  // Pedicures (count + revenue) from every technician OTHER than نيرمين get moved to her
+  let movedCount=0, movedMonthCount=0, movedRev=0;
+  stats.forEach(s=>{ if(s.t.name!==NIRMEEN){ movedCount+=s.pedCount; movedMonthCount+=s.pedCountMonth; movedRev+=s.pedRev; } });
+
+  c.innerHTML=stats.map(({t,tot,mth,baseRev,pedCount,pedCountMonth,pedRev})=>{
+    const isNirmeen=t.name===NIRMEEN;
+    const netTot=isNirmeen?(tot+movedCount):(tot-pedCount);
+    const netMth=isNirmeen?(mth+movedMonthCount):(mth-pedCountMonth);
+    const netRev=isNirmeen?(baseRev+movedRev):(baseRev-pedRev);
     return `<div class="panel">
       <div class="ph">
         <div><div style="font-weight:700;font-size:15px">${t.name}</div><div style="font-size:12px;color:var(--light)">${t.role||'فنية'}</div></div>
@@ -739,8 +765,9 @@ function rtech(){
       <div class="pb">
         <div class="sr"><span class="sl">أيام العمل</span><span class="sv" style="font-size:12px">${t.days?.length?t.days.map(d=>DAR[d]||d).join('، '):'كل الأيام'}</span></div>
         <div class="sr"><span class="sl">الموبايل</span><span class="sv">${t.mobile||'—'}</span></div>
-        <div class="sr"><span class="sl">حجوزات هذا الشهر</span><span class="sv">${mth}</span></div>
-        <div class="sr"><span class="sl">إجمالي الحجوزات</span><span class="sv">${tot}</span></div>
+        <div class="sr"><span class="sl">حجوزات هذا الشهر</span><span class="sv">${netMth}</span></div>
+        <div class="sr"><span class="sl">إجمالي الحجوزات</span><span class="sv">${netTot}</span></div>
+        <div class="sr"><span class="sl">إجمالي الإيرادات</span><span class="sv">${netRev.toFixed(2)} ج</span></div>
         <div style="margin-top:11px"><button class="btn btn-d btn-sm" onclick="delTech('${t.id}')">حذف الفنية</button></div>
       </div>
     </div>`;
