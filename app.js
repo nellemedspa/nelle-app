@@ -183,6 +183,7 @@ let curPage='dash';
 const PTITLES={dash:'الرئيسية',book:'الحجوزات',inv:'الفواتير',exp:'المصروفات',cl:'العملاء',tech:'الفنيات',prices:'قائمة الأسعار',offers:'العروض والخصومات',reports:'التقارير',waitlist:'قائمة الانتظار',stock:'المخزون',settings:'الإعدادات'};
 function goTo(id){
   curPage=id;
+  history.replaceState(null,'','#'+id);
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
   document.getElementById('pg-'+id).classList.add('on');
@@ -1511,6 +1512,10 @@ function setMobNav(id) {
 document.getElementById('tdate').textContent=new Date().toLocaleDateString('ar-EG',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 const ck=[['rent','c-rent'],['sal','c-sal'],['util','c-util'],['sup','c-sup'],['mkt','c-mkt'],['oth','c-oth']];
 ck.forEach(([k,id])=>{const el=document.getElementById(id);if(el&&D.costs[k])el.value=D.costs[k];});
-initMF(); rdls(); rdash(); rcal();
+initMF(); rdls();
+// Restore whichever page was open before a refresh (via URL hash), default to dashboard
+const VALID_PAGES=['dash','book','inv','exp','cl','tech','prices','offers','reports','waitlist','stock','settings'];
+const startPage=VALID_PAGES.includes(location.hash.replace('#',''))?location.hash.replace('#',''):'dash';
+goTo(startPage);
 // Sync from Supabase on load
 syncFromDB();
