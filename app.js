@@ -802,10 +802,13 @@ function rdash(){
   const dlb=document.getElementById('dlbl'); if(dlb) dlb.innerHTML=`<b>${mInv.length}</b> فاتورة في ${lbl}`;
   const rs=document.getElementById('d-revsub'); if(rs) rs.textContent='جنيه — '+lbl;
 
+  const todayInv=D.invs.filter(i=>i.date===today);
+  const todayRev=todayInv.reduce((s,i)=>s+i.tot,0);
   set('d-today',todayB.length);
+  set('d-today-rev',todayRev.toFixed(0));
   set('d-rev',rev.toFixed(0));
   set('d-cls',D.cls.length);
-  set('d-avg',avg.toFixed(0));
+  set('sn-avg',avg.toFixed(2)+' ج');
   set('sn-inv',rev.toFixed(2)+' ج');
   set('sn-exp',all.toFixed(2)+' ج');
   const pel=document.getElementById('sn-pr');
