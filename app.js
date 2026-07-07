@@ -86,8 +86,8 @@ try{ const s=localStorage.getItem('nelle3'); if(s) D={...D,...JSON.parse(s)}; }c
 function sv(){ localStorage.setItem('nelle3',JSON.stringify(D)); }
 
 // Full sync from Supabase → local D
-async function syncFromDB() {
-  showSyncStatus('جاري تحميل البيانات...');
+async function syncFromDB(silent) {
+  if(!silent) showSyncStatus('جاري تحميل البيانات...');
   try {
     const [cls, bks, invs, exps, techs, offers, waitlist, stock, purchases, settings] = await Promise.all([
       sbGet('nelle_clients'), sbGet('nelle_bookings'), sbGet('nelle_invoices'),
@@ -122,7 +122,19 @@ async function syncFromDB() {
   rdls(); rdash(); rcal();
   const ck2=[['rent','c-rent'],['sal','c-sal'],['util','c-util'],['sup','c-sup'],['mkt','c-mkt'],['oth','c-oth']];
   ck2.forEach(([k,id])=>{const el=document.getElementById(id);if(el&&D.costs[k])el.value=D.costs[k];});
+  // Also refresh whichever page the user is currently looking at
+  const PAGE_RENDERERS={dash:rdash,book:rcal,inv:rinv,exp:rexp,cl:rcl,tech:rtech,prices:rprices,offers:rOffers,reports:rreports,waitlist:rWaitlist,stock:rstock,settings:rSettings};
+  if(PAGE_RENDERERS[curPage] && curPage!=='dash' && curPage!=='book') PAGE_RENDERERS[curPage]();
 }
+
+// ===== BACKGROUND AUTO-REFRESH =====
+// Every 60 seconds, quietly pull the latest data from Supabase so multiple
+// staff members on different devices stay in sync. Skipped while any modal
+// (add/edit form) is open, so it never overwrites something mid-edit.
+setInterval(()=>{
+  if(document.querySelector('.ov.on')) return; // a modal is open — don't disturb it
+  syncFromDB(true);
+}, 60000);
 
 // Save a single record to Supabase
 async function svRecord(table, record) {
@@ -167,8 +179,10 @@ function slots(dn){
 }
 
 // ===== NAV =====
+let curPage='dash';
 const PTITLES={dash:'الرئيسية',book:'الحجوزات',inv:'الفواتير',exp:'المصروفات',cl:'العملاء',tech:'الفنيات',prices:'قائمة الأسعار',offers:'العروض والخصومات',reports:'التقارير',waitlist:'قائمة الانتظار',stock:'المخزون',settings:'الإعدادات'};
 function goTo(id){
+  curPage=id;
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
   document.getElementById('pg-'+id).classList.add('on');
