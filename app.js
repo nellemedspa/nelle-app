@@ -52,17 +52,38 @@ async function sbGet(table) {
 }
 async function sbUpsert(table, row) {
   try {
-    await fetch(`${SB_URL}/rest/v1/${table}`, {
+    const r = await fetch(`${SB_URL}/rest/v1/${table}`, {
       method: 'POST',
       headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates' },
       body: JSON.stringify(row)
     });
-  } catch(e) {}
+    if (!r.ok) {
+      const msg = await r.text().catch(()=> '');
+      console.error(`sbUpsert failed for table "${table}":`, r.status, msg);
+      showSyncStatus('⚠️ فشل الحفظ في قاعدة البيانات — البيانات محفوظة محليًا فقط', false, true);
+      return false;
+    }
+    return true;
+  } catch(e) {
+    console.error(`sbUpsert network error for table "${table}":`, e);
+    showSyncStatus('⚠️ فشل الحفظ في قاعدة البيانات — البيانات محفوظة محليًا فقط', false, true);
+    return false;
+  }
 }
 async function sbDelete(table, id) {
   try {
-    await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`, { method: 'DELETE', headers: SB_HEADERS });
-  } catch(e) {}
+    const r = await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`, { method: 'DELETE', headers: SB_HEADERS });
+    if (!r.ok) {
+      console.error(`sbDelete failed for table "${table}":`, r.status);
+      showSyncStatus('⚠️ فشل الحذف من قاعدة البيانات', false, true);
+      return false;
+    }
+    return true;
+  } catch(e) {
+    console.error(`sbDelete network error for table "${table}":`, e);
+    showSyncStatus('⚠️ فشل الحذف من قاعدة البيانات', false, true);
+    return false;
+  }
 }
 async function sbUpsertSettings(key, value) {
   await sbUpsert('nelle_settings', { id: key, value: JSON.stringify(value) });
