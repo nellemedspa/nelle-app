@@ -558,6 +558,7 @@ function openExpMod(){
   document.getElementById('ex-dt').value=tds(new Date());
   document.getElementById('ex-desc').value='';
   document.getElementById('ex-amt').value='';
+  document.getElementById('ex-pay').value='كاش';
   openM('mo-exp');
 }
 function saveExp(){
@@ -565,7 +566,8 @@ function saveExp(){
   const desc=document.getElementById('ex-desc').value.trim();
   const dt=document.getElementById('ex-dt').value;
   if(!dt||!amt||!desc){showErr('يرجى تعبئة جميع الحقول.');return;}
-  const newExp={id:uid(),date:dt,cat:document.getElementById('ex-cat').value,desc,amt,createdAt:new Date().toISOString()};
+  const pay=document.getElementById('ex-pay').value;
+  const newExp={id:uid(),date:dt,cat:document.getElementById('ex-cat').value,desc,amt,pay,createdAt:new Date().toISOString()};
   D.exps.push(newExp);
   svRecord('nelle_expenses',newExp); closeM('mo-exp'); rexp(); rdash();
 }
@@ -588,13 +590,15 @@ function rexp(){
   set('ep-card',card.toFixed(2)+' ج');
   set('ep-transfer',transfer.toFixed(2)+' ج');
   const tb=document.getElementById('exp-body');
-  if(!mexp.length){tb.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--light);padding:24px">لا توجد مصروفات في هذا الشهر.</td></tr>';updbe();return;}
+  if(!mexp.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--light);padding:24px">لا توجد مصروفات في هذا الشهر.</td></tr>';updbe();return;}
   const cc={مستلزمات:'br',معدات:'bg',تسويق:'bt',موظفين:'bp',مرافق:'bg',صيانة:'br',أخرى:'bx'};
-  tb.innerHTML=[...mexp].reverse().map(e=>`<tr>
+  const pc={'كاش':'bk','حساب':'bp'};
+  tb.innerHTML=[...mexp].reverse().map(e=>{const pay=e.pay||'كاش';return `<tr>
     <td>${e.date}</td><td><span class="badge ${cc[e.cat]||'bx'}">${e.cat}</span></td>
     <td>${e.desc}</td><td><strong>${e.amt.toFixed(2)} ج</strong></td>
+    <td><span class="badge ${pc[pay]||'bx'}">${pay}</span></td>
     <td><button class="btn btn-d btn-sm" onclick="delExp('${e.id}')">حذف</button></td>
-  </tr>`).join('');
+  </tr>`;}).join('');
   updbe();
 }
 function delExp(id){
