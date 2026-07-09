@@ -77,7 +77,7 @@ async function sbGetSettings(key) {
 
 // ===== DATA =====
 // Local D still used as in-memory cache for fast UI rendering
-let D = {techs:[],bks:[],invs:[],exps:[],cls:[],ic:1,costs:{},offers:[],waitlist:[],stock:[],purchases:[]};
+let D = {techs:[],bks:[],invs:[],exps:[],cls:[],ic:1,costs:{},offers:[],waitlist:[],stock:[],purchases:[],cashw:[]};
 
 // Load from localStorage as instant cache while Supabase loads
 try{ const s=localStorage.getItem('nelle3'); if(s) D={...D,...JSON.parse(s)}; }catch(e){}
@@ -89,11 +89,11 @@ function sv(){ localStorage.setItem('nelle3',JSON.stringify(D)); }
 async function syncFromDB(silent) {
   if(!silent) showSyncStatus('جاري تحميل البيانات...');
   try {
-    const [cls, bks, invs, exps, techs, offers, waitlist, stock, purchases, settings] = await Promise.all([
+    const [cls, bks, invs, exps, techs, offers, waitlist, stock, purchases, settings, cashw] = await Promise.all([
       sbGet('nelle_clients'), sbGet('nelle_bookings'), sbGet('nelle_invoices'),
       sbGet('nelle_expenses'), sbGet('nelle_techs'), sbGet('nelle_offers'),
       sbGet('nelle_waitlist'), sbGet('nelle_stock'), sbGet('nelle_purchases'),
-      sbGet('nelle_settings')
+      sbGet('nelle_settings'), sbGet('nelle_cash_withdrawals')
     ]);
     if (cls) D.cls = cls.map(r=>({...r.data, id:r.id}));
     if (bks) D.bks = bks.map(r=>({...r.data, id:r.id}));
@@ -109,6 +109,7 @@ async function syncFromDB(silent) {
     if (waitlist) D.waitlist = waitlist.map(r=>({...r.data, id:r.id}));
     if (stock) D.stock = stock.map(r=>({...r.data, id:r.id}));
     if (purchases) D.purchases = purchases.map(r=>({...r.data, id:r.id}));
+    if (cashw) D.cashw = cashw.map(r=>({...r.data, id:r.id}));
     // Load settings
     if (settings) {
       settings.forEach(s=>{ try{ D[s.id]=JSON.parse(s.value); }catch(e){} });
@@ -123,7 +124,7 @@ async function syncFromDB(silent) {
   const ck2=[['rent','c-rent'],['sal','c-sal'],['util','c-util'],['sup','c-sup'],['mkt','c-mkt'],['oth','c-oth']];
   ck2.forEach(([k,id])=>{const el=document.getElementById(id);if(el&&D.costs[k])el.value=D.costs[k];});
   // Also refresh whichever page the user is currently looking at
-  const PAGE_RENDERERS={dash:rdash,book:rcal,inv:rinv,exp:rexp,cl:rcl,tech:rtech,prices:rprices,offers:rOffers,reports:rreports,waitlist:rWaitlist,stock:rstock,settings:rSettings};
+  const PAGE_RENDERERS={dash:rdash,book:rcal,inv:rinv,exp:rexp,cl:rcl,tech:rtech,prices:rprices,offers:rOffers,reports:rreports,waitlist:rWaitlist,stock:rstock,settings:rSettings,cash:rcash};
   if(PAGE_RENDERERS[curPage] && curPage!=='dash' && curPage!=='book') PAGE_RENDERERS[curPage]();
 }
 
@@ -180,7 +181,7 @@ function slots(dn){
 
 // ===== NAV =====
 let curPage='dash';
-const PTITLES={dash:'الرئيسية',book:'الحجوزات',inv:'الفواتير',exp:'المصروفات',cl:'العملاء',tech:'الفنيات',prices:'قائمة الأسعار',offers:'العروض والخصومات',reports:'التقارير',waitlist:'قائمة الانتظار',stock:'المخزون',settings:'الإعدادات'};
+const PTITLES={dash:'الرئيسية',book:'الحجوزات',inv:'الفواتير',exp:'المصروفات',cl:'العملاء',tech:'الفنيات',prices:'قائمة الأسعار',offers:'العروض والخصومات',reports:'التقارير',waitlist:'قائمة الانتظار',stock:'المخزون',settings:'الإعدادات',cash:'الخزنة'};
 function goTo(id){
   curPage=id;
   history.replaceState(null,'','#'+id);
@@ -189,7 +190,7 @@ function goTo(id){
   document.getElementById('pg-'+id).classList.add('on');
   document.getElementById('ptitle').textContent=PTITLES[id]||id;
   document.querySelectorAll('.ni').forEach(n=>{ if(n.getAttribute('onclick')===`goTo('${id}')`) n.classList.add('on'); });
-  const R={dash:rdash,book:rcal,inv:rinv,exp:rexp,cl:rcl,tech:rtech,prices:rprices,offers:rOffers,reports:rreports,waitlist:rWaitlist,stock:rstock,settings:rSettings};
+  const R={dash:rdash,book:rcal,inv:rinv,exp:rexp,cl:rcl,tech:rtech,prices:rprices,offers:rOffers,reports:rreports,waitlist:rWaitlist,stock:rstock,settings:rSettings,cash:rcash};
   if(R[id]) R[id]();
   setMobNav(id);
 }
@@ -627,6 +628,44 @@ function updbe(){
       ${ok?'✓ تم تحقيق نقطة التعادل!':('تحتاجين '+(all-rev).toFixed(0)+' ج إضافية · '+pct.toFixed(0)+'% مغطى')}
     </div><div class="pbar"><div class="pfill" style="width:${pct}%;background:${ok?'var(--ok)':'var(--rose)'}"></div></div>`;
   } else el.innerHTML='';
+}
+
+// ===== CASH DRAWER (خزنة) =====
+function openCashwMod(){
+  document.getElementById('cw-dt').value=tds(new Date());
+  document.getElementById('cw-amt').value='';
+  document.getElementById('cw-note').value='';
+  openM('mo-cashw');
+}
+function saveCashw(){
+  const amt=parseFloat(document.getElementById('cw-amt').value)||0;
+  const dt=document.getElementById('cw-dt').value;
+  const note=document.getElementById('cw-note').value.trim();
+  if(!dt||!amt){showErr('يرجى تعبئة التاريخ والمبلغ.');return;}
+  const newW={id:uid(),date:dt,amt,note,createdAt:new Date().toISOString()};
+  D.cashw.push(newW);
+  svRecord('nelle_cash_withdrawals',newW); closeM('mo-cashw'); rcash();
+}
+function delCashw(id){
+  ask('هل تريدين حذف عملية السحب دي؟', ()=>{
+    D.cashw=D.cashw.filter(w=>w.id!==id); delRecord('nelle_cash_withdrawals',id); rcash();
+  });
+}
+function rcash(){
+  const cashRev=D.invs.filter(i=>i.pay==='كاش').reduce((s,i)=>s+i.tot,0);
+  const cashExp=D.exps.filter(e=>(e.pay||'كاش')==='كاش').reduce((s,e)=>s+e.amt,0);
+  const totalW=D.cashw.reduce((s,w)=>s+w.amt,0);
+  const atSalon=cashRev-cashExp-totalW;
+  const salonEl=document.getElementById('cw-salon'), homeEl=document.getElementById('cw-home');
+  if(salonEl) salonEl.textContent=atSalon.toFixed(2)+' ج';
+  if(homeEl) homeEl.textContent=totalW.toFixed(2)+' ج';
+  const tb=document.getElementById('cashw-body');
+  if(!tb) return;
+  if(!D.cashw.length){tb.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--light);padding:24px">لا توجد عمليات سحب مسجلة بعد.</td></tr>';return;}
+  tb.innerHTML=[...D.cashw].reverse().map(w=>`<tr>
+    <td>${w.date}</td><td><strong>${w.amt.toFixed(2)} ج</strong></td><td>${w.note||'—'}</td>
+    <td><button class="btn btn-d btn-sm" onclick="delCashw('${w.id}')">حذف</button></td>
+  </tr>`).join('');
 }
 
 // ===== CLIENTS =====

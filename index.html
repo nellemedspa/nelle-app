@@ -19,6 +19,7 @@
     <div class="ni" onclick="goTo('book')"><span>◷</span><span>الحجوزات</span></div>
     <div class="ni" onclick="goTo('inv')"><span>◻</span><span>الفواتير</span></div>
     <div class="ni" onclick="goTo('exp')"><span>◈</span><span>المصروفات</span></div>
+    <div class="ni" onclick="goTo('cash')"><span>🗄️</span><span>الخزنة</span></div>
     <div class="ni" onclick="goTo('cl')"><span>◎</span><span>العملاء</span></div>
     <div class="ni" onclick="goTo('tech')"><span>◆</span><span>الفنيات</span></div>
     <div class="ni" onclick="goTo('prices')"><span>✦</span><span>قائمة الأسعار</span></div>
@@ -236,6 +237,31 @@
         <div class="ph"><h3 id="exp-ttl">سجل المصروفات</h3></div>
         <table><thead><tr><th>التاريخ</th><th>الفئة</th><th>الوصف</th><th>المبلغ</th><th>طريقة الدفع</th><th></th></tr></thead>
         <tbody id="exp-body"></tbody></table>
+      </div>
+    </div>
+
+    <!-- CASH DRAWER -->
+    <div class="pg" id="pg-cash">
+      <div class="alert alert-i">الأرقام دي تراكمية من أول ما بدأتي تسجّلي على التطبيق، مش شهرية.</div>
+      <div class="g2" style="margin-bottom:16px">
+        <div class="card ra">
+          <div class="ct">💰 الكاش في الصالون</div>
+          <div class="cv" id="cw-salon">0 ج</div>
+          <div class="cs">إيرادات كاش − مصروفات كاش − المسحوب للخزنة</div>
+        </div>
+        <div class="card ga">
+          <div class="ct">🏠 الكاش في الخزنة</div>
+          <div class="cv" id="cw-home">0 ج</div>
+          <div class="cs">إجمالي المسحوب من الصالون للخزنة</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="ph">
+          <h3>سجل السحب من الصالون للخزنة</h3>
+          <button class="btn btn-p btn-sm" onclick="openCashwMod()">+ سحب فلوس للخزنة</button>
+        </div>
+        <table><thead><tr><th>التاريخ</th><th>المبلغ</th><th>ملاحظات</th><th></th></tr></thead>
+        <tbody id="cashw-body"></tbody></table>
       </div>
     </div>
 
@@ -722,6 +748,21 @@
   </div>
 </div>
 
+<div class="ov" id="mo-cashw">
+  <div class="modal">
+    <div class="mh"><h3>سحب فلوس للخزنة</h3><button class="mc" onclick="closeM('mo-cashw')">✕</button></div>
+    <div class="mb">
+      <div class="fg"><label>التاريخ</label><input type="date" id="cw-dt"></div>
+      <div class="fg"><label>المبلغ (ج)</label><input type="number" id="cw-amt" placeholder="0" min="0"></div>
+      <div class="fg"><label>ملاحظات (اختياري)</label><input type="text" id="cw-note" placeholder="مثال: مصاريف الخزنة"></div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-p" onclick="saveCashw()">حفظ</button>
+      <button class="btn btn-s" onclick="closeM('mo-cashw')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
 <!-- CLIENT ADD/EDIT -->
 <div class="ov" id="mo-cl">
   <div class="modal">
@@ -832,6 +873,9 @@
   <div class="mob-more-grid">
     <button class="mob-more-item" id="mm-exp" onclick="goTo('exp');setMobNav('exp');toggleMoreMenu()">
       <span class="ico">◈</span><span>المصروفات</span>
+    </button>
+    <button class="mob-more-item" id="mm-cash" onclick="goTo('cash');setMobNav('cash');toggleMoreMenu()">
+      <span class="ico">🗄️</span><span>الخزنة</span>
     </button>
     <button class="mob-more-item" id="mm-tech" onclick="goTo('tech');setMobNav('tech');toggleMoreMenu()">
       <span class="ico">◆</span><span>الفنيات</span>
