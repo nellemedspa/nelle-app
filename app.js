@@ -589,6 +589,10 @@ function rexp(){
   set('ep-cash',cash.toFixed(2)+' ج');
   set('ep-card',card.toFixed(2)+' ج');
   set('ep-transfer',transfer.toFixed(2)+' ج');
+  const expCash=mexp.filter(e=>(e.pay||'كاش')==='كاش').reduce((s,e)=>s+e.amt,0);
+  const expAcc=mexp.filter(e=>(e.pay||'كاش')==='حساب').reduce((s,e)=>s+e.amt,0);
+  set('ep-exp-cash',expCash.toFixed(2)+' ج');
+  set('ep-exp-acc',expAcc.toFixed(2)+' ج');
   const tb=document.getElementById('exp-body');
   if(!mexp.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--light);padding:24px">لا توجد مصروفات في هذا الشهر.</td></tr>';updbe();return;}
   const cc={مستلزمات:'br',معدات:'bg',تسويق:'bt',موظفين:'bp',مرافق:'bg',صيانة:'br',أخرى:'bx'};
