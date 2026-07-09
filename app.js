@@ -46,9 +46,18 @@ const SB_HEADERS = { 'Content-Type':'application/json', 'apikey': SB_KEY, 'Autho
 async function sbGet(table) {
   try {
     const r = await fetch(`${SB_URL}/rest/v1/${table}?select=*&order=created_at.asc`, { headers: SB_HEADERS });
-    if (!r.ok) return null;
+    if (!r.ok) {
+      const msg = await r.text().catch(()=> '');
+      console.error(`sbGet failed for table "${table}":`, r.status, msg);
+      showSyncStatus(`⚠️ فشل تحميل بيانات "${table}" من قاعدة البيانات`, false, true);
+      return null;
+    }
     return await r.json();
-  } catch(e) { return null; }
+  } catch(e) {
+    console.error(`sbGet network error for table "${table}":`, e);
+    showSyncStatus(`⚠️ فشل تحميل بيانات "${table}" من قاعدة البيانات`, false, true);
+    return null;
+  }
 }
 async function sbUpsert(table, row) {
   try {
@@ -1612,7 +1621,7 @@ const ck=[['rent','c-rent'],['sal','c-sal'],['util','c-util'],['sup','c-sup'],['
 ck.forEach(([k,id])=>{const el=document.getElementById(id);if(el&&D.costs[k])el.value=D.costs[k];});
 initMF(); rdls();
 // Restore whichever page was open before a refresh (via URL hash), default to dashboard
-const VALID_PAGES=['dash','book','inv','exp','cl','tech','prices','offers','reports','waitlist','stock','settings'];
+const VALID_PAGES=['dash','book','inv','exp','cl','tech','prices','offers','reports','waitlist','stock','settings','cash'];
 const startPage=VALID_PAGES.includes(location.hash.replace('#',''))?location.hash.replace('#',''):'dash';
 goTo(startPage);
 // Sync from Supabase on load
