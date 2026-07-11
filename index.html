@@ -449,9 +449,9 @@
         <div class="ph"><h3>🔧 صيانة البيانات</h3></div>
         <div class="pb">
           <div class="alert alert-w" style="margin-bottom:12px">
-            دي عملية تصحيح بتاخد كل الفواتير الموجودة وتبني منها سجلات العملاء (أو تصحح الموجود)، عشان قائمة العملاء تبقى مطابقة تمامًا للفواتير الفعلية. مينفعش تحذف أي فاتورة أو عميل، بس ممكن تحدّث بيانات الزيارات.
+            ⚠️ دي عملية <strong>نهائية</strong>: هيتم حذف كل العملاء الحاليين بالكامل (وأي بيانات زيادة مسجلة عليهم زي تاريخ الميلاد أو الملاحظات)، وبعدين إعادة بناء القائمة من الصفر بناءً على الفواتير بس. الفواتير نفسها مش هتتحذف أو تتغيّر.
           </div>
-          <button class="btn btn-s" onclick="rebuildClientsFromInvoices()">🔄 إعادة بناء العملاء من الفواتير</button>
+          <button class="btn btn-d" onclick="rebuildClientsFromInvoices()">🗑️ حذف كل العملاء وإعادة بنائهم من الفواتير</button>
         </div>
       </div>
       <div class="panel" style="margin-bottom:18px">

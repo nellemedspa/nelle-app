@@ -1085,7 +1085,15 @@ function showErr(msg) {
 
 // ===== DATA MAINTENANCE =====
 async function rebuildClientsFromInvoices(){
-  ask('هيتم مراجعة كل الفواتير وبناء/تصحيح بيانات العملاء (عدد الزيارات، آخر زيارة، إجمالي المدفوع) بناءً عليها. مش هيتم حذف أي فاتورة أو عميل. متابعة؟', async ()=>{
+  ask('هيتم حذف كل العملاء الحاليين نهائيًا (بما فيهم أي بيانات زيادة زي الميلاد أو الملاحظات)، وإعادة بناء القائمة من الصفر بناءً على الفواتير فقط. العملية دي مينفعش ترجع فيها. متأكدة عايزة تكملي؟', async ()=>{
+    showErr('⏳ جارِ الحذف وإعادة البناء...');
+    // 1) delete every existing client, locally and from Supabase
+    const oldClients=[...D.cls];
+    for(const c of oldClients){
+      await delRecord('nelle_clients', c.id);
+    }
+    D.cls=[];
+    // 2) rebuild fresh from invoice history
     const stats={};
     D.invs.forEach(inv=>{
       const name=(inv.cn||'').trim();
@@ -1096,20 +1104,14 @@ async function rebuildClientsFromInvoices(){
       if(!stats[name].lv || inv.date>stats[name].lv) stats[name].lv=inv.date;
     });
     const names=Object.keys(stats);
-    let created=0, updated=0;
     for(const name of names){
-      let c=D.cls.find(c=>c.name===name);
       const s=stats[name];
-      if(!c){
-        c={id:uid(),name,mobile:'',createdAt:new Date().toISOString()};
-        D.cls.push(c);
-        created++;
-      } else updated++;
-      c.ltv=s.ltv; c.vc=s.vc; c.lv=s.lv;
+      const c={id:uid(),name,mobile:'',ltv:s.ltv,vc:s.vc,lv:s.lv,createdAt:new Date().toISOString()};
+      D.cls.push(c);
       await svRecord('nelle_clients', c);
     }
     rdls(); rcl(); rdash();
-    showErr(`✅ تم بناء ${names.length} عميل من ${D.invs.length} فاتورة — ${created} جديد، ${updated} تحديث`);
+    showErr(`✅ اتحذفت ${oldClients.length} عميل قديم، واتبنى ${names.length} عميل جديد من ${D.invs.length} فاتورة`);
   });
 }
 
