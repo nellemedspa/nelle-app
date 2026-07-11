@@ -114,6 +114,9 @@ tr:hover td{background:#fdf9f8;}
 .spg{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:8px;}
 .spb{padding:6px 3px;border:1px solid var(--border);border-radius:7px;background:#fff;cursor:pointer;font-size:11px;text-align:center;font-family:inherit;transition:all .15s;}
 .spb:hover{border-color:var(--rose);background:var(--rose-l);}
+.spb-price{color:var(--rose);}
+.spb.sel{background:var(--rose);border-color:var(--rose);color:#fff;}
+.spb.sel .spb-price{color:#fff;}
 .scat{font-size:11px;font-weight:700;color:var(--light);margin:10px 0 5px;}
 
 /* INVOICE TOTAL */

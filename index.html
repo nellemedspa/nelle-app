@@ -267,8 +267,17 @@
 
     <!-- CLIENTS -->
     <div class="pg" id="pg-cl">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-        <div class="swrap"><input class="sinp" placeholder="ابحث بالاسم أو الموبايل..." oninput="rcl(this.value)"><span class="sico">🔍</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <div class="swrap"><input class="sinp" id="cl-search" placeholder="ابحث بالاسم أو الموبايل..." oninput="rcl(this.value)"><span class="sico">🔍</span></div>
+          <select class="msel" id="cl-sort" onchange="rcl(document.getElementById('cl-search').value)">
+            <option value="newest">الأحدث إضافة</option>
+            <option value="az">الاسم (أ-ي)</option>
+            <option value="visits">الأكثر عودة (زيارات)</option>
+            <option value="ltv">الأعلى إنفاقًا</option>
+            <option value="lastvisit">آخر زيارة</option>
+          </select>
+        </div>
         <button class="btn btn-p" onclick="openClMod()">+ إضافة عميلة</button>
       </div>
       <div class="g3" style="margin-bottom:16px">

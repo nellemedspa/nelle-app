@@ -7,7 +7,8 @@ const PL_DEFAULT = {
     {n:"تريتمنت + لون",p:350},{n:"إزالة جيل أو هارد جيل",p:50},{n:"فرنش / أومبريه",p:60},
     {n:"ميرور / كروم",p:50},{n:"كات آي / جليتر",p:50},{n:"إصلاح ظافر",p:15},
     {n:"إكستنشن (للضفر)",p:10},{n:"أكسسوار / ديزاين (للضفر)",p:10},
-    {n:"ديزاين يد كاملة",p:80},{n:"مانيكير لون عادي",p:80},{n:"بريس أون نيلز",p:270}
+    {n:"ديزاين يد كاملة",p:80},{n:"مانيكير لون عادي",p:80},{n:"بريس أون نيلز",p:270},
+    {n:"3D ديزاين يد كاملة",p:100}
   ],
   "سبا وباديكير":[
     {n:"جلسة سبا لليدين",p:100},{n:"باديكير قدم عادي",p:120},
@@ -465,11 +466,23 @@ function buildSvcPicker(){
   const el=document.getElementById('svc-picker');
   el.innerHTML=Object.entries(getPL()).map(([cat,svcs])=>`
     <div class="scat">${cat}</div>
-    <div class="spg">${svcs.map(s=>`<button class="spb" onclick="addLine('${s.n.replace(/'/g,"\\'")}',${s.p})"><div style="font-weight:700;font-size:12px">${s.n}</div><div style="color:var(--rose);font-size:12px;margin-top:2px">${s.p} ج</div></button>`).join('')}</div>`).join('');
+    <div class="spg">${svcs.map(s=>{
+      const jsEsc=s.n.replace(/'/g,"\\'");
+      const attrEsc=s.n.replace(/"/g,'&quot;');
+      return `<button class="spb" data-svc="${attrEsc}" onclick="addLine('${jsEsc}',${s.p})"><div style="font-weight:700;font-size:12px">${s.n}</div><div class="spb-price" style="font-size:12px;margin-top:2px">${s.p} ج</div></button>`;
+    }).join('')}</div>`).join('');
+  updateSvcSel();
+}
+function updateSvcSel(){
+  const names=new Set(ilines.map(l=>l.n));
+  document.querySelectorAll('#svc-picker .spb').forEach(btn=>{
+    btn.classList.toggle('sel', names.has(btn.getAttribute('data-svc')));
+  });
 }
 function addLine(n,p){ ilines.push({id:uid(),n,p}); rlines(); calctot(); }
 function rlines(){
   const c=document.getElementById('inv-lines');
+  updateSvcSel();
   if(!ilines.length){c.innerHTML='<p style="font-size:12px;color:var(--light);margin-bottom:8px">اضغطي على خدمة لإضافتها.</p>';return;}
   c.innerHTML=`<div style="border:1px solid var(--border);border-radius:9px;overflow:hidden;margin-bottom:9px">`+
     ilines.map(l=>`<div style="display:flex;align-items:center;gap:7px;padding:7px 10px;border-bottom:1px solid #f5f0ee;flex-direction:row-reverse">
@@ -763,11 +776,23 @@ function rcl(f){
   document.getElementById('cl-vis').textContent=mvisTot;
   document.getElementById('cl-rb').textContent=D.cls.filter(c=>D.invs.filter(i=>i.cn===c.name).length>=2).length;
   const tb=document.getElementById('cl-body');
-  if(!list.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--light);padding:24px">لا توجد عميلات بعد.</td></tr>';return;}
-  tb.innerHTML=list.map(c=>{
+  // enrich each client with computed stats first, so we can sort by them
+  let rows=list.map(c=>{
     const invs=D.invs.filter(i=>i.cn===c.name);
     const ltv=invs.reduce((s,i)=>s+i.tot,0);
-    const last=invs.sort((a,b)=>b.date.localeCompare(a.date))[0];
+    const last=[...invs].sort((a,b)=>b.date.localeCompare(a.date))[0];
+    return {c, invs, ltv, last};
+  });
+  const sortBy=document.getElementById('cl-sort')?.value||'newest';
+  rows.sort((a,b)=>{
+    if(sortBy==='az') return a.c.name.localeCompare(b.c.name,'ar');
+    if(sortBy==='visits') return b.invs.length-a.invs.length;
+    if(sortBy==='ltv') return b.ltv-a.ltv;
+    if(sortBy==='lastvisit') return (b.last?.date||'').localeCompare(a.last?.date||'');
+    return (b.c.createdAt||'').localeCompare(a.c.createdAt||''); // newest (default)
+  });
+  if(!rows.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--light);padding:24px">لا توجد عميلات بعد.</td></tr>';return;}
+  tb.innerHTML=rows.map(({c,invs,ltv,last})=>{
     const bday=c.birthday?pld(c.birthday):null;
     const isBday=bday&&bday.getMonth()===now.getMonth()&&bday.getDate()===now.getDate();
     return `<tr>
