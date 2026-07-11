@@ -411,7 +411,6 @@ function saveBk(){
   const t=D.techs.find(t=>t.id===tid);
   const ss=slel.options[slel.selectedIndex]?.textContent.split(' –')[0]||'';
   const mob=document.getElementById('bk-mob').value.trim();
-  if(!D.cls.find(c=>c.name===cn)){ D.cls.push({id:uid(),name:cn,mobile:mob,birthday:'',address:'',referredBy:'',skinType:'',allergies:'',notes:'',createdAt:new Date().toISOString()}); rdls(); }
   if(editBkId){
     const b=D.bks.find(x=>x.id===editBkId);
     if(b){
@@ -552,6 +551,7 @@ function saveInv(){
     let c=D.cls.find(c=>c.name===cl);
     if(!c){c={id:uid(),name:cl,mobile:'',createdAt:new Date().toISOString()};D.cls.push(c);rdls();}
     c.lv=inv.date; c.ltv=(c.ltv||0)+inv.tot; c.vc=(c.vc||0)+1;
+    svRecord('nelle_clients', c);
     svRecord('nelle_invoices', inv);
   }
   editInvId=null;
@@ -1081,6 +1081,36 @@ function showErr(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.style.opacity = '1';
   setTimeout(() => { t.style.opacity = '0'; }, 3000);
+}
+
+// ===== DATA MAINTENANCE =====
+async function rebuildClientsFromInvoices(){
+  ask('هيتم مراجعة كل الفواتير وبناء/تصحيح بيانات العملاء (عدد الزيارات، آخر زيارة، إجمالي المدفوع) بناءً عليها. مش هيتم حذف أي فاتورة أو عميل. متابعة؟', async ()=>{
+    const stats={};
+    D.invs.forEach(inv=>{
+      const name=(inv.cn||'').trim();
+      if(!name) return;
+      if(!stats[name]) stats[name]={ltv:0,vc:0,lv:''};
+      stats[name].ltv += inv.tot||0;
+      stats[name].vc += 1;
+      if(!stats[name].lv || inv.date>stats[name].lv) stats[name].lv=inv.date;
+    });
+    const names=Object.keys(stats);
+    let created=0, updated=0;
+    for(const name of names){
+      let c=D.cls.find(c=>c.name===name);
+      const s=stats[name];
+      if(!c){
+        c={id:uid(),name,mobile:'',createdAt:new Date().toISOString()};
+        D.cls.push(c);
+        created++;
+      } else updated++;
+      c.ltv=s.ltv; c.vc=s.vc; c.lv=s.lv;
+      await svRecord('nelle_clients', c);
+    }
+    rdls(); rcl(); rdash();
+    showErr(`✅ تم بناء ${names.length} عميل من ${D.invs.length} فاتورة — ${created} جديد، ${updated} تحديث`);
+  });
 }
 
 // ===== OFFERS =====

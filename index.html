@@ -446,6 +446,15 @@
     <!-- SETTINGS -->
     <div class="pg" id="pg-settings">
       <div class="panel" style="margin-bottom:18px">
+        <div class="ph"><h3>🔧 صيانة البيانات</h3></div>
+        <div class="pb">
+          <div class="alert alert-w" style="margin-bottom:12px">
+            دي عملية تصحيح بتاخد كل الفواتير الموجودة وتبني منها سجلات العملاء (أو تصحح الموجود)، عشان قائمة العملاء تبقى مطابقة تمامًا للفواتير الفعلية. مينفعش تحذف أي فاتورة أو عميل، بس ممكن تحدّث بيانات الزيارات.
+          </div>
+          <button class="btn btn-s" onclick="rebuildClientsFromInvoices()">🔄 إعادة بناء العملاء من الفواتير</button>
+        </div>
+      </div>
+      <div class="panel" style="margin-bottom:18px">
         <div class="ph">
           <h3>⏰ مواعيد العمل</h3>
           <button class="btn btn-p btn-sm" onclick="saveSettings()">💾 حفظ التغييرات</button>
