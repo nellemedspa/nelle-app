@@ -759,8 +759,8 @@ function rcl(f){
   let list=[...D.cls];
   if(f) list=list.filter(c=>c.name.includes(f)||(c.mobile||'').includes(f));
   document.getElementById('cl-tot').textContent=D.cls.length;
-  const uv=[...new Set(D.invs.filter(i=>i.date?.startsWith(mo)).map(i=>i.cn))];
-  document.getElementById('cl-vis').textContent=uv.length;
+  const mvisTot=D.invs.filter(i=>i.date?.startsWith(mo)).length;
+  document.getElementById('cl-vis').textContent=mvisTot;
   document.getElementById('cl-rb').textContent=D.cls.filter(c=>D.invs.filter(i=>i.cn===c.name).length>=2).length;
   const tb=document.getElementById('cl-body');
   if(!list.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--light);padding:24px">لا توجد عميلات بعد.</td></tr>';return;}
