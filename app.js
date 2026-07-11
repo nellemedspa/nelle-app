@@ -303,7 +303,8 @@ function rcal(){
             if(i>0){ const hr=document.createElement('hr'); hr.style.cssText='border:none;border-top:1px solid #f5e0de;margin:2px 0'; el.appendChild(hr); }
             const entry=document.createElement('div');
             entry.className='cslot-entry';
-            entry.innerHTML=`<div class="sn">${b.cn}</div><div class="ss">${b.svc}${b.tn?' · '+b.tn:''}</div>`;
+            const invoiced=b.invId && D.invs.find(x=>x.id===b.invId);
+            entry.innerHTML=`<div class="sn">${invoiced?'🧾 ':''}${b.cn}</div><div class="ss">${b.svc}${b.tn?' · '+b.tn:''}</div>`;
             entry.onclick=(e)=>{ e.stopPropagation(); viewSlot(b); };
             el.appendChild(entry);
           });
@@ -327,7 +328,9 @@ function rcal(){
 
 function viewSlot(b){
   document.getElementById('sl-ttl').textContent=b.cn;
+  const invoiced=b.invId && D.invs.find(x=>x.id===b.invId);
   document.getElementById('sl-body').innerHTML=`
+    ${invoiced?'<div class="alert alert-i" style="margin-bottom:10px">🧾 تم إصدار فاتورة لهذا الحجز بالفعل.</div>':''}
     <div class="sr"><span class="sl">الخدمة</span><span class="sv">${b.svc}</span></div>
     <div class="sr"><span class="sl">الفنية</span><span class="sv">${b.tn||'—'}</span></div>
     <div class="sr"><span class="sl">التاريخ</span><span class="sv">${b.date}</span></div>
@@ -339,6 +342,9 @@ function viewSlot(b){
   delBtn._bkid=b.id;
   const editBtn=document.getElementById('sl-edit');
   editBtn._bkid=b.id;
+  const invBtn=document.getElementById('sl-inv');
+  invBtn._bkid=b.id;
+  invBtn.textContent=invoiced?'🧾 عرض الفاتورة':'🧾 إنشاء فاتورة';
   openM('mo-slot');
 }
 
@@ -356,7 +362,25 @@ document.getElementById('sl-edit').addEventListener('click',function(){
   openBkMod(null,null,id);
 });
 
+document.getElementById('sl-inv').addEventListener('click',function(){
+  const id=this._bkid; if(!id) return;
+  createInvFromBk(id);
+});
+
 let editBkId=null;
+let pendingBkLink=null; // {bkId, mob} — set when creating an invoice from a booking
+function createInvFromBk(id){
+  const b=D.bks.find(x=>x.id===id);
+  if(!b) return;
+  if(b.invId && D.invs.find(x=>x.id===b.invId)){
+    closeM('mo-slot');
+    openInvMod(b.invId);
+    return;
+  }
+  pendingBkLink={bkId:b.id, mob:b.mob||''};
+  closeM('mo-slot');
+  openInvMod(null, b);
+}
 function openBkMod(ds,sk,editId){
   editBkId=editId||null;
   const b=editBkId?D.bks.find(x=>x.id===editBkId):null;
@@ -445,14 +469,21 @@ function rbklist(f){
   const lb=document.getElementById('blbl'); if(lb) lb.innerHTML=`<b>${list.length}</b> حجز`;
   const tb=document.getElementById('bklst-body');
   if(!list.length){tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--light);padding:24px">لا توجد حجوزات في هذا الشهر.</td></tr>';return;}
-  tb.innerHTML=list.map(b=>`<tr>
+  tb.innerHTML=list.map(b=>{
+    const invoiced=b.invId && D.invs.find(x=>x.id===b.invId);
+    return `<tr>
     <td>${b.date}</td><td>${DAR[b.dn]||b.dn||'—'}</td>
     <td style="direction:ltr;text-align:center">${b.ss||'—'}</td>
     <td style="font-weight:600">${b.cn}</td>
     <td><span class="badge br">${b.svc}</span></td>
     <td>${b.tn||'—'}</td><td style="font-size:12px;color:var(--light)">${b.notes||'—'}</td>
-    <td><div style="display:flex;gap:5px"><button class="btn btn-s btn-sm" onclick="openBkMod(null,null,'${b.id}')">✏️</button><button class="btn btn-d btn-sm" onclick="delBk('${b.id}')">إلغاء</button></div></td>
-  </tr>`).join('');
+    <td><div style="display:flex;gap:5px">
+      <button class="btn ${invoiced?'btn-s':'btn-p'} btn-sm" onclick="createInvFromBk('${b.id}')" title="${invoiced?'عرض الفاتورة':'إنشاء فاتورة'}">🧾</button>
+      <button class="btn btn-s btn-sm" onclick="openBkMod(null,null,'${b.id}')">✏️</button>
+      <button class="btn btn-d btn-sm" onclick="delBk('${b.id}')">إلغاء</button>
+    </div></td>
+  </tr>`;
+  }).join('');
 }
 function delBk(id){
   ask('هل تريدين إلغاء هذا الحجز؟', ()=>{
@@ -503,13 +534,20 @@ function calctot(){
   document.getElementById('t-tot').textContent=(sub-dis).toFixed(2)+' ج';
 }
 let editInvId=null;
-function openInvMod(id){
+function openInvMod(id, fromBk){
   editInvId=id||null;
   const inv=editInvId?D.invs.find(x=>x.id===editInvId):null;
-  document.getElementById('inv-mo-ttl').textContent=inv?'تعديل الفاتورة':'فاتورة جديدة';
+  if(!fromBk) pendingBkLink=null; // clear any stale booking link unless we're explicitly invoicing a booking
+  document.getElementById('inv-mo-ttl').textContent=inv?'تعديل الفاتورة':(fromBk?'فاتورة من الحجز':'فاتورة جديدة');
   ilines=inv?JSON.parse(JSON.stringify(inv.svcs)):[];
-  document.getElementById('in-cl').value=inv?inv.cn:'';
-  document.getElementById('in-dt').value=inv?inv.date:tds(new Date());
+  if(fromBk && !inv){
+    // pre-add the booked service as a line, if it matches a current price-list entry
+    let matched=null;
+    Object.values(getPL()).forEach(svcs=>{ const m=svcs.find(s=>s.n===fromBk.svc); if(m) matched=m; });
+    if(matched) ilines=[{id:uid(),n:matched.n,p:matched.p}];
+  }
+  document.getElementById('in-cl').value=inv?inv.cn:(fromBk?fromBk.cn:'');
+  document.getElementById('in-dt').value=inv?inv.date:(fromBk?fromBk.date:tds(new Date()));
   document.getElementById('in-notes').value=inv?(inv.notes||''):'';
   document.getElementById('in-pay').value=inv?(inv.pay||'كاش'):'كاش';
   fillTech('in-tech');
@@ -522,6 +560,10 @@ function openInvMod(id){
     const wantTn=inv.tn||'غير محدد';
     for(const o of ts.options){ if(o.textContent===wantTn){o.selected=true;break;} }
   } else {
+    if(fromBk && fromBk.tid){
+      const ts=document.getElementById('in-tech');
+      for(const o of ts.options){ if(o.value===fromBk.tid){o.selected=true;break;} }
+    }
     // Auto-apply active offer (new invoices only)
     const today=tds(new Date());
     const activeOffer=(D.offers||[]).find(o=>(!o.from||o.from<=today)&&(!o.to||o.to>=today));
@@ -560,12 +602,19 @@ function saveInv(){
       svcs:JSON.parse(JSON.stringify(ilines)),sub,dtype:dt,dval:dv,dis,tot:sub-dis,
       ddesc:document.getElementById('in-dd').value,pay:document.getElementById('in-pay').value,
       tn:tn==='غير محدد'?'':tn,notes:document.getElementById('in-notes').value,createdAt:new Date().toISOString()};
+    if(pendingBkLink) inv.bkId=pendingBkLink.bkId;
     D.invs.push(inv);
     let c=D.cls.find(c=>c.name===cl);
-    if(!c){c={id:uid(),name:cl,mobile:'',createdAt:new Date().toISOString()};D.cls.push(c);rdls();}
+    if(!c){c={id:uid(),name:cl,mobile:pendingBkLink?.mob||'',createdAt:new Date().toISOString()};D.cls.push(c);rdls();}
+    else if(pendingBkLink?.mob && !c.mobile){ c.mobile=pendingBkLink.mob; }
     c.lv=inv.date; c.ltv=(c.ltv||0)+inv.tot; c.vc=(c.vc||0)+1;
     svRecord('nelle_clients', c);
     svRecord('nelle_invoices', inv);
+    if(pendingBkLink){
+      const b=D.bks.find(x=>x.id===pendingBkLink.bkId);
+      if(b){ b.invId=inv.id; svRecord('nelle_bookings', b); }
+      pendingBkLink=null;
+    }
   }
   editInvId=null;
   closeM('mo-inv'); rinv(); rdash();
