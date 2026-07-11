@@ -234,7 +234,7 @@ document.querySelectorAll('.ov').forEach(m=>m.addEventListener('click',e=>{ if(e
 // ===== MONTH FILTER =====
 function initMF(){
   const now=new Date(), cy=now.getFullYear(), cm=now.getMonth()+1;
-  [['d','dash'],['b','book'],['i','inv'],['e','exp'],['r','reports']].forEach(([p])=>{
+  [['d','dash'],['b','book'],['e','exp'],['r','reports']].forEach(([p])=>{
     const ms=document.getElementById(p+'m'), ys=document.getElementById(p+'y');
     if(!ms||!ys) return;
     ms.innerHTML=MAR.map((n,i)=>`<option value="${String(i+1).padStart(2,'0')}"${i+1===cm?' selected':''}>${n}</option>`).join('');
@@ -246,6 +246,18 @@ function gmf(p){
   const ms=document.getElementById(p+'m'), ys=document.getElementById(p+'y');
   if(!ms||!ys){ const n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0'); }
   return ys.value+'-'+ms.value;
+}
+function setInvRange(kind){
+  const from=document.getElementById('inv-from'), to=document.getElementById('inv-to');
+  if(!from||!to) return;
+  if(kind==='month'){
+    const now=new Date();
+    from.value=tds(new Date(now.getFullYear(),now.getMonth(),1));
+    to.value=tds(new Date(now.getFullYear(),now.getMonth()+1,0));
+  } else if(kind==='all'){
+    from.value=''; to.value='';
+  }
+  rinv();
 }
 function mgo(p,dir){
   const ms=document.getElementById(p+'m'), ys=document.getElementById(p+'y');
@@ -620,15 +632,20 @@ function saveInv(){
   closeM('mo-inv'); rinv(); rdash();
 }
 function rinv(f){
-  const mo=gmf('i'), [y,m]=mo.split('-');
-  const lbl=MAR[parseInt(m)-1]+' '+y;
-  let list=[...D.invs].filter(i=>i.date?.startsWith(mo)).reverse();
+  const from=document.getElementById('inv-from')?.value||'';
+  const to=document.getElementById('inv-to')?.value||'';
+  let list=[...D.invs].filter(i=>{
+    if(from && (!i.date || i.date<from)) return false;
+    if(to && (!i.date || i.date>to)) return false;
+    return true;
+  }).reverse();
   if(f) list=list.filter(i=>i.cn.includes(f));
   const tot=list.reduce((s,i)=>s+i.tot,0);
   const lb=document.getElementById('ilbl'); if(lb) lb.innerHTML=`<b>${list.length}</b> فاتورة &nbsp;|&nbsp; إجمالي: <b>${tot.toFixed(0)} ج</b>`;
-  const ttl=document.getElementById('inv-ttl'); if(ttl) ttl.textContent='فواتير '+lbl;
+  const ttl=document.getElementById('inv-ttl');
+  if(ttl) ttl.textContent = 'فواتير '+(from&&to?(from+' → '+to):(from?('من '+from):(to?('حتى '+to):'كل الوقت')));
   const tb=document.getElementById('inv-body');
-  if(!list.length){tb.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--light);padding:24px">لا توجد فواتير في هذا الشهر.</td></tr>';return;}
+  if(!list.length){tb.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--light);padding:24px">لا توجد فواتير في الفترة المحددة.</td></tr>';return;}
   tb.innerHTML=list.map(inv=>`<tr>
     <td><span class="badge bx">${inv.num}</span></td>
     <td style="font-weight:600">${inv.cn}</td><td>${inv.date}</td>
@@ -1725,7 +1742,7 @@ function setMobNav(id) {
 document.getElementById('tdate').textContent=new Date().toLocaleDateString('ar-EG',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 const ck=[['rent','c-rent'],['sal','c-sal'],['util','c-util'],['sup','c-sup'],['mkt','c-mkt'],['oth','c-oth']];
 ck.forEach(([k,id])=>{const el=document.getElementById(id);if(el&&D.costs[k])el.value=D.costs[k];});
-initMF(); rdls();
+initMF(); rdls(); setInvRange('month');
 // Restore whichever page was open before a refresh (via URL hash), default to dashboard
 const VALID_PAGES=['dash','book','inv','exp','cl','tech','prices','offers','reports','waitlist','stock','settings','cash'];
 const startPage=VALID_PAGES.includes(location.hash.replace('#',''))?location.hash.replace('#',''):'dash';
