@@ -122,12 +122,12 @@
       <!-- List view -->
       <div id="bk-lst" style="display:none">
         <div class="mbar">
-          <label>عرض شهر:</label>
-          <select class="msel" id="bm" onchange="rbklist()"></select>
-          <select class="msel" id="by" onchange="rbklist()"></select>
-          <button class="btn btn-s btn-sm" onclick="mgo('b','p')">◀ السابق</button>
-          <button class="btn btn-s btn-sm" onclick="mgo('b','n')">التالي ▶</button>
-          <button class="btn btn-sm" style="background:var(--rose-l);color:var(--rose);border:1px solid var(--rose-m)" onclick="mgo('b','t')">هذا الشهر</button>
+          <label>من:</label>
+          <input type="date" class="msel" id="bk-from" onchange="rbklist()">
+          <label>إلى:</label>
+          <input type="date" class="msel" id="bk-to" onchange="rbklist()">
+          <button class="btn btn-sm" style="background:var(--rose-l);color:var(--rose);border:1px solid var(--rose-m)" onclick="setBkRange('month')">هذا الشهر</button>
+          <button class="btn btn-s btn-sm" onclick="setBkRange('all')">كل الوقت</button>
           <span class="mstat" id="blbl"></span>
         </div>
         <div class="panel">

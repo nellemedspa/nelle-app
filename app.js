@@ -234,7 +234,7 @@ document.querySelectorAll('.ov').forEach(m=>m.addEventListener('click',e=>{ if(e
 // ===== MONTH FILTER =====
 function initMF(){
   const now=new Date(), cy=now.getFullYear(), cm=now.getMonth()+1;
-  [['d','dash'],['b','book'],['r','reports']].forEach(([p])=>{
+  [['d','dash'],['r','reports']].forEach(([p])=>{
     const ms=document.getElementById(p+'m'), ys=document.getElementById(p+'y');
     if(!ms||!ys) return;
     ms.innerHTML=MAR.map((n,i)=>`<option value="${String(i+1).padStart(2,'0')}"${i+1===cm?' selected':''}>${n}</option>`).join('');
@@ -270,6 +270,18 @@ function setExpRange(kind){
     from.value=''; to.value='';
   }
   rexp();
+}
+function setBkRange(kind){
+  const from=document.getElementById('bk-from'), to=document.getElementById('bk-to');
+  if(!from||!to) return;
+  if(kind==='month'){
+    const now=new Date();
+    from.value=tds(new Date(now.getFullYear(),now.getMonth(),1));
+    to.value=tds(new Date(now.getFullYear(),now.getMonth()+1,0));
+  } else if(kind==='all'){
+    from.value=''; to.value='';
+  }
+  rbklist();
 }
 function mgo(p,dir){
   const ms=document.getElementById(p+'m'), ys=document.getElementById(p+'y');
@@ -484,15 +496,21 @@ function bktab(t){
 }
 function rbklist(f){
   if(f!==undefined) bkf=f;
-  const mo=gmf('b'), [y,m]=mo.split('-');
-  const lbl=MAR[parseInt(m)-1]+' '+y;
-  let list=D.bks.filter(b=>b.date?.startsWith(mo));
+  const from=document.getElementById('bk-from')?.value||'';
+  const to=document.getElementById('bk-to')?.value||'';
+  const lbl = from&&to?(from+' → '+to):(from?('من '+from):(to?('حتى '+to):'كل الوقت'));
+  let list=D.bks.filter(b=>{
+    if(!b.date) return false;
+    if(from && b.date<from) return false;
+    if(to && b.date>to) return false;
+    return true;
+  });
   if(bkf) list=list.filter(b=>b.cn.includes(bkf));
   list.sort((a,b)=>a.date.localeCompare(b.date)||a.sk.localeCompare(b.sk));
   const ttl=document.getElementById('bk-lst-ttl'); if(ttl) ttl.textContent='حجوزات '+lbl;
   const lb=document.getElementById('blbl'); if(lb) lb.innerHTML=`<b>${list.length}</b> حجز`;
   const tb=document.getElementById('bklst-body');
-  if(!list.length){tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--light);padding:24px">لا توجد حجوزات في هذا الشهر.</td></tr>';return;}
+  if(!list.length){tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--light);padding:24px">لا توجد حجوزات في الفترة المحددة.</td></tr>';return;}
   tb.innerHTML=list.map(b=>{
     const invoiced=b.invId && D.invs.find(x=>x.id===b.invId);
     return `<tr>
@@ -1760,7 +1778,7 @@ function setMobNav(id) {
 document.getElementById('tdate').textContent=new Date().toLocaleDateString('ar-EG',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 const ck=[['rent','c-rent'],['sal','c-sal'],['util','c-util'],['sup','c-sup'],['mkt','c-mkt'],['oth','c-oth']];
 ck.forEach(([k,id])=>{const el=document.getElementById(id);if(el&&D.costs[k])el.value=D.costs[k];});
-initMF(); rdls(); setInvRange('month'); setExpRange('month');
+initMF(); rdls(); setInvRange('month'); setExpRange('month'); setBkRange('month');
 // Restore whichever page was open before a refresh (via URL hash), default to dashboard
 const VALID_PAGES=['dash','book','inv','exp','cl','tech','prices','offers','reports','waitlist','stock','settings','cash'];
 const startPage=VALID_PAGES.includes(location.hash.replace('#',''))?location.hash.replace('#',''):'dash';
