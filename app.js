@@ -234,7 +234,7 @@ document.querySelectorAll('.ov').forEach(m=>m.addEventListener('click',e=>{ if(e
 // ===== MONTH FILTER =====
 function initMF(){
   const now=new Date(), cy=now.getFullYear(), cm=now.getMonth()+1;
-  [['d','dash'],['b','book'],['e','exp'],['r','reports']].forEach(([p])=>{
+  [['d','dash'],['b','book'],['r','reports']].forEach(([p])=>{
     const ms=document.getElementById(p+'m'), ys=document.getElementById(p+'y');
     if(!ms||!ys) return;
     ms.innerHTML=MAR.map((n,i)=>`<option value="${String(i+1).padStart(2,'0')}"${i+1===cm?' selected':''}>${n}</option>`).join('');
@@ -258,6 +258,18 @@ function setInvRange(kind){
     from.value=''; to.value='';
   }
   rinv();
+}
+function setExpRange(kind){
+  const from=document.getElementById('exp-from'), to=document.getElementById('exp-to');
+  if(!from||!to) return;
+  if(kind==='month'){
+    const now=new Date();
+    from.value=tds(new Date(now.getFullYear(),now.getMonth(),1));
+    to.value=tds(new Date(now.getFullYear(),now.getMonth()+1,0));
+  } else if(kind==='all'){
+    from.value=''; to.value='';
+  }
+  rexp();
 }
 function mgo(p,dir){
   const ms=document.getElementById(p+'m'), ys=document.getElementById(p+'y');
@@ -682,14 +694,16 @@ function saveExp(){
   svRecord('nelle_expenses',newExp); closeM('mo-exp'); rexp(); rdash();
 }
 function rexp(){
-  const mo=gmf('e'), [y,m]=mo.split('-');
-  const lbl=MAR[parseInt(m)-1]+' '+y;
-  const mexp=D.exps.filter(e=>e.date?.startsWith(mo));
+  const from=document.getElementById('exp-from')?.value||'';
+  const to=document.getElementById('exp-to')?.value||'';
+  const inRange=d=>{ if(!d) return false; if(from&&d<from) return false; if(to&&d>to) return false; return true; };
+  const lbl = from&&to?(from+' → '+to):(from?('من '+from):(to?('حتى '+to):'كل الوقت'));
+  const mexp=D.exps.filter(e=>inRange(e.date));
   const tot=mexp.reduce((s,e)=>s+e.amt,0);
   document.getElementById('exp-tot').textContent=tot.toFixed(2)+' ج';
   const ttl=document.getElementById('exp-ttl'); if(ttl) ttl.textContent='مصروفات '+lbl;
-  // Payment breakdown for this month
-  const mInv=D.invs.filter(i=>i.date?.startsWith(mo));
+  // Payment breakdown for this range
+  const mInv=D.invs.filter(i=>inRange(i.date));
   const totalRev=mInv.reduce((s,i)=>s+i.tot,0);
   const cash=mInv.filter(i=>i.pay==='كاش').reduce((s,i)=>s+i.tot,0);
   const card=mInv.filter(i=>i.pay==='كارت').reduce((s,i)=>s+i.tot,0);
@@ -704,7 +718,7 @@ function rexp(){
   set('ep-exp-cash',expCash.toFixed(2)+' ج');
   set('ep-exp-acc',expAcc.toFixed(2)+' ج');
   const tb=document.getElementById('exp-body');
-  if(!mexp.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--light);padding:24px">لا توجد مصروفات في هذا الشهر.</td></tr>';updbe();return;}
+  if(!mexp.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--light);padding:24px">لا توجد مصروفات في الفترة المحددة.</td></tr>';updbe(totalRev,tot);return;}
   const cc={مستلزمات:'br',معدات:'bg',تسويق:'bt',موظفين:'bp',مرافق:'bg',صيانة:'br',أخرى:'bx'};
   const pc={'كاش':'bk','حساب':'bp'};
   tb.innerHTML=[...mexp].reverse().map(e=>{const pay=e.pay||'كاش';return `<tr>
@@ -713,21 +727,25 @@ function rexp(){
     <td><span class="badge ${pc[pay]||'bx'}">${pay}</span></td>
     <td><button class="btn btn-d btn-sm" onclick="delExp('${e.id}')">حذف</button></td>
   </tr>`;}).join('');
-  updbe();
+  updbe(totalRev,tot);
 }
 function delExp(id){
   ask('هل تريدين حذف هذا المصروف؟', ()=>{
     D.exps=D.exps.filter(e=>e.id!==id); delRecord('nelle_expenses',id); rexp(); rdash();
   });
 }
-function updbe(){
+function updbe(rev,ve){
   const ks=[['rent','c-rent'],['sal','c-sal'],['util','c-util'],['sup','c-sup'],['mkt','c-mkt'],['oth','c-oth']];
   let ft=0;
   ks.forEach(([k,id])=>{const el=document.getElementById(id);const v=parseFloat(el?.value)||0;D.costs[k]=v;ft+=v;});
   sv(); sbUpsertSettings('costs',D.costs);
-  const mo=gmf('e');
-  const rev=D.invs.filter(i=>i.date?.startsWith(mo)).reduce((s,i)=>s+i.tot,0);
-  const ve=D.exps.filter(e=>e.date?.startsWith(mo)).reduce((s,e)=>s+e.amt,0);
+  if(rev===undefined||ve===undefined){
+    const from=document.getElementById('exp-from')?.value||'';
+    const to=document.getElementById('exp-to')?.value||'';
+    const inRange=d=>{ if(!d) return false; if(from&&d<from) return false; if(to&&d>to) return false; return true; };
+    rev=D.invs.filter(i=>inRange(i.date)).reduce((s,i)=>s+i.tot,0);
+    ve=D.exps.filter(e=>inRange(e.date)).reduce((s,e)=>s+e.amt,0);
+  }
   const all=ft+ve;
   document.getElementById('exp-be').textContent=all.toFixed(2)+' ج';
   const el=document.getElementById('be-bar');
@@ -1742,7 +1760,7 @@ function setMobNav(id) {
 document.getElementById('tdate').textContent=new Date().toLocaleDateString('ar-EG',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 const ck=[['rent','c-rent'],['sal','c-sal'],['util','c-util'],['sup','c-sup'],['mkt','c-mkt'],['oth','c-oth']];
 ck.forEach(([k,id])=>{const el=document.getElementById(id);if(el&&D.costs[k])el.value=D.costs[k];});
-initMF(); rdls(); setInvRange('month');
+initMF(); rdls(); setInvRange('month'); setExpRange('month');
 // Restore whichever page was open before a refresh (via URL hash), default to dashboard
 const VALID_PAGES=['dash','book','inv','exp','cl','tech','prices','offers','reports','waitlist','stock','settings','cash'];
 const startPage=VALID_PAGES.includes(location.hash.replace('#',''))?location.hash.replace('#',''):'dash';

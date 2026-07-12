@@ -163,12 +163,12 @@
     <!-- EXPENSES -->
     <div class="pg" id="pg-exp">
       <div class="mbar">
-        <label>عرض شهر:</label>
-        <select class="msel" id="em" onchange="rexp()"></select>
-        <select class="msel" id="ey" onchange="rexp()"></select>
-        <button class="btn btn-s btn-sm" onclick="mgo('e','p')">◀ السابق</button>
-        <button class="btn btn-s btn-sm" onclick="mgo('e','n')">التالي ▶</button>
-        <button class="btn btn-sm" style="background:var(--rose-l);color:var(--rose);border:1px solid var(--rose-m)" onclick="mgo('e','t')">هذا الشهر</button>
+        <label>من:</label>
+        <input type="date" class="msel" id="exp-from" onchange="rexp()">
+        <label>إلى:</label>
+        <input type="date" class="msel" id="exp-to" onchange="rexp()">
+        <button class="btn btn-sm" style="background:var(--rose-l);color:var(--rose);border:1px solid var(--rose-m)" onclick="setExpRange('month')">هذا الشهر</button>
+        <button class="btn btn-s btn-sm" onclick="setExpRange('all')">كل الوقت</button>
         <div style="margin-right:auto"><button class="btn btn-p" onclick="openExpMod()">+ إضافة مصروف</button></div>
       </div>
       <div class="alert alert-i">أدخل التكاليف الثابتة الشهرية لحساب نقطة التعادل.</div>
