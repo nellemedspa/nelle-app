@@ -1726,7 +1726,7 @@ function importData(input) {
       const imported = JSON.parse(e.target.result);
       // Validate it looks like our data
       if (!imported.cls && !imported.invs && !imported.bks) {
-        showErr('❌ الملف غير صحيح — تأكدي إنه نسخة احتياطية من نيللي');
+        showErr('❌ الملف غير صحيح — تأكدي إنه نسخة احتياطية من نل');
         return;
       }
       ask('هل تريدين استعادة هذه النسخة الاحتياطية؟ البيانات الحالية هتتستبدل.', () => {
