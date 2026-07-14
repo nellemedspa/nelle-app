@@ -552,7 +552,12 @@ function updateSvcSel(){
     btn.classList.toggle('sel', names.has(btn.getAttribute('data-svc')));
   });
 }
-function addLine(n,p){ ilines.push({id:uid(),n,p}); rlines(); calctot(); }
+function addLine(n,p){
+  const existingIdx=ilines.findIndex(l=>l.n===n);
+  if(existingIdx>-1){ ilines.splice(existingIdx,1); } // already selected -> unselect
+  else{ ilines.push({id:uid(),n,p}); } // not selected -> select
+  rlines(); calctot();
+}
 function rlines(){
   const c=document.getElementById('inv-lines');
   updateSvcSel();
