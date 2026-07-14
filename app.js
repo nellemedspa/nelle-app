@@ -669,16 +669,18 @@ function saveInv(){
 function rinv(f){
   const from=document.getElementById('inv-from')?.value||'';
   const to=document.getElementById('inv-to')?.value||'';
+  const payf=document.getElementById('inv-pay-filter')?.value||'';
   let list=[...D.invs].filter(i=>{
     if(from && (!i.date || i.date<from)) return false;
     if(to && (!i.date || i.date>to)) return false;
+    if(payf && i.pay!==payf) return false;
     return true;
   }).reverse();
   if(f) list=list.filter(i=>i.cn.includes(f));
   const tot=list.reduce((s,i)=>s+i.tot,0);
   const lb=document.getElementById('ilbl'); if(lb) lb.innerHTML=`<b>${list.length}</b> فاتورة &nbsp;|&nbsp; إجمالي: <b>${tot.toFixed(0)} ج</b>`;
   const ttl=document.getElementById('inv-ttl');
-  if(ttl) ttl.textContent = 'فواتير '+(from&&to?(from+' → '+to):(from?('من '+from):(to?('حتى '+to):'كل الوقت')));
+  if(ttl) ttl.textContent = 'فواتير '+(from&&to?(from+' → '+to):(from?('من '+from):(to?('حتى '+to):'كل الوقت')))+(payf?(' · '+payf):'');
   const tb=document.getElementById('inv-body');
   if(!list.length){tb.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--light);padding:24px">لا توجد فواتير في الفترة المحددة.</td></tr>';return;}
   tb.innerHTML=list.map(inv=>`<tr>
@@ -719,10 +721,13 @@ function saveExp(){
 function rexp(){
   const from=document.getElementById('exp-from')?.value||'';
   const to=document.getElementById('exp-to')?.value||'';
+  const payf=document.getElementById('exp-pay-filter')?.value||'';
   const inRange=d=>{ if(!d) return false; if(from&&d<from) return false; if(to&&d>to) return false; return true; };
-  const lbl = from&&to?(from+' → '+to):(from?('من '+from):(to?('حتى '+to):'كل الوقت'));
-  const mexp=D.exps.filter(e=>inRange(e.date));
-  const tot=mexp.reduce((s,e)=>s+e.amt,0);
+  const lbl = (from&&to?(from+' → '+to):(from?('من '+from):(to?('حتى '+to):'كل الوقت')))+(payf?(' · '+payf):'');
+  const mexp=D.exps.filter(e=>inRange(e.date)); // full-range, unfiltered by payment method — used for the breakdown boxes below
+  const mexpList=payf?mexp.filter(e=>(e.pay||'كاش')===payf):mexp; // used for the total card + table
+  const tot=mexpList.reduce((s,e)=>s+e.amt,0);
+  const totAll=mexp.reduce((s,e)=>s+e.amt,0); // full-range total, used for break-even (unaffected by payment filter)
   document.getElementById('exp-tot').textContent=tot.toFixed(2)+' ج';
   const ttl=document.getElementById('exp-ttl'); if(ttl) ttl.textContent='مصروفات '+lbl;
   // Payment breakdown for this range
@@ -741,16 +746,16 @@ function rexp(){
   set('ep-exp-cash',expCash.toFixed(2)+' ج');
   set('ep-exp-acc',expAcc.toFixed(2)+' ج');
   const tb=document.getElementById('exp-body');
-  if(!mexp.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--light);padding:24px">لا توجد مصروفات في الفترة المحددة.</td></tr>';updbe(totalRev,tot);return;}
+  if(!mexpList.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--light);padding:24px">لا توجد مصروفات في الفترة المحددة.</td></tr>';updbe(totalRev,totAll);return;}
   const cc={مستلزمات:'br',معدات:'bg',تسويق:'bt',موظفين:'bp',مرافق:'bg',صيانة:'br',أخرى:'bx'};
   const pc={'كاش':'bk','حساب':'bp'};
-  tb.innerHTML=[...mexp].reverse().map(e=>{const pay=e.pay||'كاش';return `<tr>
+  tb.innerHTML=[...mexpList].reverse().map(e=>{const pay=e.pay||'كاش';return `<tr>
     <td>${e.date}</td><td><span class="badge ${cc[e.cat]||'bx'}">${e.cat}</span></td>
     <td>${e.desc}</td><td><strong>${e.amt.toFixed(2)} ج</strong></td>
     <td><span class="badge ${pc[pay]||'bx'}">${pay}</span></td>
     <td><button class="btn btn-d btn-sm" onclick="delExp('${e.id}')">حذف</button></td>
   </tr>`;}).join('');
-  updbe(totalRev,tot);
+  updbe(totalRev,totAll);
 }
 function delExp(id){
   ask('هل تريدين حذف هذا المصروف؟', ()=>{

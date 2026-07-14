@@ -144,15 +144,22 @@
     <div class="pg" id="pg-inv">
       <div class="mbar">
         <label>من:</label>
-        <input type="date" class="msel" id="inv-from" onchange="rinv()">
+        <input type="date" class="msel" id="inv-from" onchange="rinv(document.getElementById('inv-search').value)">
         <label>إلى:</label>
-        <input type="date" class="msel" id="inv-to" onchange="rinv()">
+        <input type="date" class="msel" id="inv-to" onchange="rinv(document.getElementById('inv-search').value)">
         <button class="btn btn-sm" style="background:var(--rose-l);color:var(--rose);border:1px solid var(--rose-m)" onclick="setInvRange('month')">هذا الشهر</button>
         <button class="btn btn-s btn-sm" onclick="setInvRange('all')">كل الوقت</button>
+        <label>طريقة الدفع:</label>
+        <select class="msel" id="inv-pay-filter" onchange="rinv(document.getElementById('inv-search').value)">
+          <option value="">الكل</option>
+          <option value="كاش">كاش</option>
+          <option value="كارت">كارت</option>
+          <option value="تحويل - انستاباي">تحويل - انستاباي</option>
+        </select>
         <span class="mstat" id="ilbl"></span>
         <div style="margin-right:auto"><button class="btn btn-p" onclick="openInvMod()">+ فاتورة جديدة</button></div>
       </div>
-      <div style="margin-bottom:12px"><div class="swrap"><input class="sinp" placeholder="ابحث عن عميل..." oninput="rinv(this.value)" style="width:240px"><span class="sico">🔍</span></div></div>
+      <div style="margin-bottom:12px"><div class="swrap"><input class="sinp" id="inv-search" placeholder="ابحث عن عميل..." oninput="rinv(this.value)" style="width:240px"><span class="sico">🔍</span></div></div>
       <div class="panel">
         <div class="ph"><h3 id="inv-ttl">سجل الفواتير</h3></div>
         <table><thead><tr><th>#</th><th>العميل</th><th>التاريخ</th><th>الخدمات</th><th>قبل الخصم</th><th>الخصم</th><th>الإجمالي</th><th>الدفع</th><th></th></tr></thead>
@@ -169,6 +176,12 @@
         <input type="date" class="msel" id="exp-to" onchange="rexp()">
         <button class="btn btn-sm" style="background:var(--rose-l);color:var(--rose);border:1px solid var(--rose-m)" onclick="setExpRange('month')">هذا الشهر</button>
         <button class="btn btn-s btn-sm" onclick="setExpRange('all')">كل الوقت</button>
+        <label>طريقة الدفع:</label>
+        <select class="msel" id="exp-pay-filter" onchange="rexp()">
+          <option value="">الكل</option>
+          <option value="كاش">كاش</option>
+          <option value="حساب">حساب</option>
+        </select>
         <div style="margin-right:auto"><button class="btn btn-p" onclick="openExpMod()">+ إضافة مصروف</button></div>
       </div>
       <div class="alert alert-i">أدخل التكاليف الثابتة الشهرية لحساب نقطة التعادل.</div>
