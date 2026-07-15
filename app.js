@@ -334,7 +334,9 @@ function rcal(){
         const el=document.createElement('div');
         if(bks.length){
           el.className='cslot booked';
-          el.innerHTML=`<div class="st">${sl.s}</div>`;
+          el.innerHTML=`<div class="st" style="cursor:pointer" title="إضافة حجز آخر في نفس الموعد">${sl.s}</div>`;
+          const stEl=el.querySelector('.st');
+          stEl.onclick=(e)=>{ e.stopPropagation(); openBkMod(ds,sl.k,null,'إضافي'); };
           bks.forEach((b,i)=>{
             if(i>0){ const hr=document.createElement('hr'); hr.style.cssText='border:none;border-top:1px solid #f5e0de;margin:2px 0'; el.appendChild(hr); }
             const entry=document.createElement('div');
@@ -417,10 +419,10 @@ function createInvFromBk(id){
   closeM('mo-slot');
   openInvMod(null, b);
 }
-function openBkMod(ds,sk,editId){
+function openBkMod(ds,sk,editId,defaultTechName){
   editBkId=editId||null;
   const b=editBkId?D.bks.find(x=>x.id===editBkId):null;
-  document.getElementById('bk-mo-ttl').textContent=b?'تعديل الحجز':'حجز جديد';
+  document.getElementById('bk-mo-ttl').textContent=b?'تعديل الحجز':(defaultTechName?'حجز إضافي على نفس الموعد':'حجز جديد');
   document.getElementById('bk-cl').value=b?b.cn:'';
   document.getElementById('bk-mob').value=b?(b.mob||''):'';
   document.getElementById('bk-notes').value=b?(b.notes||''):'';
@@ -428,6 +430,14 @@ function openBkMod(ds,sk,editId){
   document.getElementById('bk-warn').style.display='none';
   fillTech('bk-tech');
   if(b) document.getElementById('bk-tech').value=b.tid||'';
+  else if(defaultTechName){
+    const ts=document.getElementById('bk-tech');
+    const norm=s=>(s||'').trim().normalize('NFKC').replace(/[أإآ]/g,'ا');
+    const target=norm(defaultTechName);
+    let found=false;
+    for(const o of ts.options){ if(norm(o.textContent)===target){ o.selected=true; found=true; break; } }
+    if(!found) showErr(`لا توجد فنية باسم "${defaultTechName}" — أضيفيها من صفحة الفنيات لتفعيل هذا الاختصار`);
+  }
   // fill service select
   const ss=document.getElementById('bk-svc'); ss.innerHTML='';
   Object.entries(getPL()).forEach(([cat,svcs])=>{
@@ -562,15 +572,38 @@ function rlines(){
   const c=document.getElementById('inv-lines');
   updateSvcSel();
   if(!ilines.length){c.innerHTML='<p style="font-size:12px;color:var(--light);margin-bottom:8px">اضغطي على خدمة لإضافتها.</p>';return;}
+  const escJs=s=>(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const escAttr=s=>escJs(s).replace(/"/g,'&quot;');
+  // group same-name lines together so quantity can be shown/adjusted
+  const groups=[];
+  ilines.forEach(l=>{
+    let g=groups.find(x=>x.n===l.n);
+    if(!g){ g={n:l.n,p:l.p,qty:0}; groups.push(g); }
+    g.qty++;
+  });
   c.innerHTML=`<div style="border:1px solid var(--border);border-radius:9px;overflow:hidden;margin-bottom:9px">`+
-    ilines.map(l=>`<div style="display:flex;align-items:center;gap:7px;padding:7px 10px;border-bottom:1px solid #f5f0ee;flex-direction:row-reverse">
-      <button class="btn btn-d btn-sm" onclick="rmLine('${l.id}')">✕</button>
+    groups.map(g=>{const en=escAttr(g.n);return `<div style="display:flex;align-items:center;gap:7px;padding:7px 10px;border-bottom:1px solid #f5f0ee;flex-direction:row-reverse">
+      <button class="btn btn-d btn-sm" onclick="rmGroup('${en}')">✕</button>
+      <div style="display:flex;align-items:center;gap:4px">
+        <button class="btn btn-s btn-sm" onclick="addQty('${en}',${g.p})" title="زيادة الكمية">＋</button>
+        <span style="min-width:16px;text-align:center;font-weight:700;font-size:13px">${g.qty}</span>
+        <button class="btn btn-s btn-sm" onclick="subQty('${en}')" title="إنقاص الكمية" ${g.qty<=1?'disabled':''}>−</button>
+      </div>
       <span style="color:var(--light);font-size:12px">ج</span>
-      <input type="number" value="${l.p}" min="0" style="width:100px;padding:5px 9px;border:1px solid var(--border);border-radius:7px;font-size:13px;text-align:center"
-        oninput="ilines.find(x=>x.id==='${l.id}').p=parseFloat(this.value)||0;calctot()">
-      <span style="flex:1;font-size:13px;font-weight:600;text-align:right">${l.n}</span>
-    </div>`).join('')+'</div>';
+      <input type="number" value="${g.p}" min="0" style="width:90px;padding:5px 9px;border:1px solid var(--border);border-radius:7px;font-size:13px;text-align:center"
+        oninput="setGroupPrice('${en}',parseFloat(this.value)||0)">
+      <span style="flex:1;font-size:13px;font-weight:600;text-align:right">${g.n}${g.qty>1?` <span style="color:var(--light);font-weight:400">× ${g.qty} = ${(g.p*g.qty).toFixed(0)} ج</span>`:''}</span>
+    </div>`;}).join('')+'</div>';
 }
+function addQty(n,p){ ilines.push({id:uid(),n,p}); rlines(); calctot(); }
+function subQty(n){
+  const idx=[]; ilines.forEach((l,i)=>{ if(l.n===n) idx.push(i); });
+  if(idx.length<=1) return; // last one — use ✕ to remove the service entirely
+  ilines.splice(idx[idx.length-1],1);
+  rlines(); calctot();
+}
+function rmGroup(n){ ilines=ilines.filter(l=>l.n!==n); rlines(); calctot(); }
+function setGroupPrice(n,p){ ilines.forEach(l=>{ if(l.n===n) l.p=p; }); calctot(); }
 function rmLine(id){ ilines=ilines.filter(l=>l.id!==id); rlines(); calctot(); }
 function calctot(){
   const sub=ilines.reduce((s,l)=>s+(l.p||0),0);
