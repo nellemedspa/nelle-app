@@ -39,7 +39,66 @@ const SCHED = new Proxy({}, { get(_,k){ return getSched()[k]; } });
 const DAR = {Sunday:'الأحد',Monday:'الاثنين',Tuesday:'الثلاثاء',Wednesday:'الأربعاء',Thursday:'الخميس',Friday:'الجمعة',Saturday:'السبت'};
 const MAR = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 
-// ===== SUPABASE CONFIG =====
+// ===== AUTH (simple screen-lock, not a real security boundary) =====
+const AUTH_USERS = {
+  'Admin': { pass:'S@mN@nM@gKokk@', role:'admin' },
+  'Salon': { pass:'Ne$$eS@Lon', role:'limited' }
+};
+const LIMITED_PAGES = ['book','inv','exp','cl'];
+window.currentRole = null;
+
+function doLogin(){
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  const rec = AUTH_USERS[u];
+  const errEl = document.getElementById('login-err');
+  if(rec && rec.pass===p){
+    errEl.style.display='none';
+    localStorage.setItem('nelle_auth', JSON.stringify({user:u, role:rec.role}));
+    applyAuth(rec.role);
+    document.getElementById('login-screen').classList.remove('on');
+  } else {
+    errEl.style.display='block';
+    document.getElementById('login-pass').value='';
+  }
+}
+function doLogout(){
+  ask('هل تريدين تسجيل الخروج؟', ()=>{
+    localStorage.removeItem('nelle_auth');
+    location.reload();
+  });
+}
+function applyAuth(role){
+  window.currentRole = role;
+  const limited = role==='limited';
+  // Sidebar nav
+  document.querySelectorAll('.sb .ni[data-page]').forEach(el=>{
+    el.style.display = (limited && !LIMITED_PAGES.includes(el.getAttribute('data-page'))) ? 'none' : '';
+  });
+  // Mobile bottom nav + more-menu (ids are mn-{page} / mm-{page})
+  document.querySelectorAll('[id^="mn-"], [id^="mm-"]').forEach(el=>{
+    const page = el.id.replace(/^(mn|mm)-/,'');
+    if(['dash','book','inv','exp','cl','tech','prices','offers','reports','waitlist','stock','settings','cash'].includes(page)){
+      el.style.display = (limited && !LIMITED_PAGES.includes(page)) ? 'none' : '';
+    }
+  });
+}
+function checkAuth(){
+  const logo = document.querySelector('.sb-logo img');
+  const loginLogo = document.getElementById('login-logo');
+  if(logo && loginLogo) loginLogo.src = logo.src;
+  try{
+    const saved = JSON.parse(localStorage.getItem('nelle_auth')||'null');
+    if(saved && AUTH_USERS[saved.user] && AUTH_USERS[saved.user].role===saved.role){
+      applyAuth(saved.role);
+      document.getElementById('login-screen').classList.remove('on');
+      return;
+    }
+  }catch(e){}
+  document.getElementById('login-screen').classList.add('on');
+}
+
+
 const SB_URL = 'https://guhsbsnerresgdyzbqnl.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd1aHNic25lcnJlc2dkeXpicW5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDY1NzIsImV4cCI6MjA5Nzk4MjU3Mn0.m6-FccesY77CLsFcAiZ7o8p6OZaWGoDHqhV6usB8x14';
 const SB_HEADERS = { 'Content-Type':'application/json', 'apikey': SB_KEY, 'Authorization': 'Bearer '+SB_KEY };
@@ -214,6 +273,7 @@ function slots(dn){
 let curPage='dash';
 const PTITLES={dash:'الرئيسية',book:'الحجوزات',inv:'الفواتير',exp:'المصروفات',cl:'العملاء',tech:'الفنيات',prices:'قائمة الأسعار',offers:'العروض والخصومات',reports:'التقارير',waitlist:'قائمة الانتظار',stock:'المخزون',settings:'الإعدادات',cash:'الخزنة'};
 function goTo(id){
+  if(window.currentRole==='limited' && !LIMITED_PAGES.includes(id)) id='book';
   curPage=id;
   history.replaceState(null,'','#'+id);
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
@@ -229,7 +289,7 @@ function goTo(id){
 // ===== MODALS =====
 function openM(id){ document.getElementById(id).classList.add('on'); }
 function closeM(id){ document.getElementById(id).classList.remove('on'); }
-document.querySelectorAll('.ov').forEach(m=>m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('on'); }));
+document.querySelectorAll('.ov:not(#login-screen)').forEach(m=>m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('on'); }));
 
 // ===== MONTH FILTER =====
 function initMF(){
@@ -282,6 +342,18 @@ function setBkRange(kind){
     from.value=''; to.value='';
   }
   rbklist();
+}
+function setTechRange(kind){
+  const from=document.getElementById('tech-from'), to=document.getElementById('tech-to');
+  if(!from||!to) return;
+  if(kind==='month'){
+    const now=new Date();
+    from.value=tds(new Date(now.getFullYear(),now.getMonth(),1));
+    to.value=tds(new Date(now.getFullYear(),now.getMonth()+1,0));
+  } else if(kind==='all'){
+    from.value=''; to.value='';
+  }
+  rtech();
 }
 function mgo(p,dir){
   const ms=document.getElementById(p+'m'), ys=document.getElementById(p+'y');
@@ -711,7 +783,10 @@ function rinv(f){
   }).reverse();
   if(f) list=list.filter(i=>i.cn.includes(f));
   const tot=list.reduce((s,i)=>s+i.tot,0);
-  const lb=document.getElementById('ilbl'); if(lb) lb.innerHTML=`<b>${list.length}</b> فاتورة &nbsp;|&nbsp; إجمالي: <b>${tot.toFixed(0)} ج</b>`;
+  const lb=document.getElementById('ilbl');
+  if(lb) lb.innerHTML = window.currentRole==='limited'
+    ? `<b>${list.length}</b> فاتورة`
+    : `<b>${list.length}</b> فاتورة &nbsp;|&nbsp; إجمالي: <b>${tot.toFixed(0)} ج</b>`;
   const ttl=document.getElementById('inv-ttl');
   if(ttl) ttl.textContent = 'فواتير '+(from&&to?(from+' → '+to):(from?('من '+from):(to?('حتى '+to):'كل الوقت')))+(payf?(' · '+payf):'');
   const tb=document.getElementById('inv-body');
@@ -763,25 +838,20 @@ function rexp(){
   const totAll=mexp.reduce((s,e)=>s+e.amt,0); // full-range total, used for break-even (unaffected by payment filter)
   document.getElementById('exp-tot').textContent=tot.toFixed(2)+' ج';
   const ttl=document.getElementById('exp-ttl'); if(ttl) ttl.textContent='مصروفات '+lbl;
-  // Payment breakdown for this range
+  // totalRev is still needed for the break-even calculation below, even though its display card was removed
   const mInv=D.invs.filter(i=>inRange(i.date));
   const totalRev=mInv.reduce((s,i)=>s+i.tot,0);
-  const cash=mInv.filter(i=>i.pay==='كاش').reduce((s,i)=>s+i.tot,0);
-  const card=mInv.filter(i=>i.pay==='كارت').reduce((s,i)=>s+i.tot,0);
-  const transfer=mInv.filter(i=>i.pay==='تحويل - انستاباي').reduce((s,i)=>s+i.tot,0);
   const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
-  set('ep-total-rev',totalRev.toFixed(2)+' ج');
-  set('ep-cash',cash.toFixed(2)+' ج');
-  set('ep-card',card.toFixed(2)+' ج');
-  set('ep-transfer',transfer.toFixed(2)+' ج');
   const expCash=mexp.filter(e=>(e.pay||'كاش')==='كاش').reduce((s,e)=>s+e.amt,0);
   const expAcc=mexp.filter(e=>(e.pay||'كاش')==='حساب').reduce((s,e)=>s+e.amt,0);
+  const expVault=mexp.filter(e=>e.pay==='خزنة').reduce((s,e)=>s+e.amt,0);
   set('ep-exp-cash',expCash.toFixed(2)+' ج');
   set('ep-exp-acc',expAcc.toFixed(2)+' ج');
+  set('ep-exp-vault',expVault.toFixed(2)+' ج');
   const tb=document.getElementById('exp-body');
   if(!mexpList.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--light);padding:24px">لا توجد مصروفات في الفترة المحددة.</td></tr>';updbe(totalRev,totAll);return;}
   const cc={مستلزمات:'br',معدات:'bg',تسويق:'bt',موظفين:'bp',مرافق:'bg',صيانة:'br',أخرى:'bx'};
-  const pc={'كاش':'bk','حساب':'bp'};
+  const pc={'كاش':'bk','حساب':'bp','خزنة':'bg'};
   tb.innerHTML=[...mexpList].reverse().map(e=>{const pay=e.pay||'كاش';return `<tr>
     <td>${e.date}</td><td><span class="badge ${cc[e.cat]||'bx'}">${e.cat}</span></td>
     <td>${e.desc}</td><td><strong>${e.amt.toFixed(2)} ج</strong></td>
@@ -842,11 +912,13 @@ function delCashw(id){
 function rcash(){
   const cashRev=D.invs.filter(i=>i.pay==='كاش').reduce((s,i)=>s+i.tot,0);
   const cashExp=D.exps.filter(e=>(e.pay||'كاش')==='كاش').reduce((s,e)=>s+e.amt,0);
+  const vaultExp=D.exps.filter(e=>e.pay==='خزنة').reduce((s,e)=>s+e.amt,0);
   const totalW=D.cashw.reduce((s,w)=>s+w.amt,0);
   const atSalon=cashRev-cashExp-totalW;
+  const atHome=totalW-vaultExp;
   const salonEl=document.getElementById('cw-salon'), homeEl=document.getElementById('cw-home');
   if(salonEl) salonEl.textContent=atSalon.toFixed(2)+' ج';
-  if(homeEl) homeEl.textContent=totalW.toFixed(2)+' ج';
+  if(homeEl) homeEl.textContent=atHome.toFixed(2)+' ج';
   const tb=document.getElementById('cashw-body');
   if(!tb) return;
   if(!D.cashw.length){tb.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--light);padding:24px">لا توجد عمليات سحب مسجلة بعد.</td></tr>';return;}
@@ -974,36 +1046,19 @@ function delTech(id){
 function rtech(){
   const c=document.getElementById('tech-cards');
   if(!D.techs.length){c.innerHTML=`<div class="panel" style="grid-column:1/-1"><div class="pb"><p style="color:var(--light);font-size:13px">لا توجد فنيات بعد.</p></div></div>`;return;}
-  const now=new Date(), mo=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
-  const NIRMEEN='نيرمين';
-
-  // First pass: base stats + pedicure breakdown (by line item) for every technician
+  const from=document.getElementById('tech-from')?.value||'';
+  const to=document.getElementById('tech-to')?.value||'';
+  const inRange=d=>{ if(!d) return false; if(from&&d<from) return false; if(to&&d>to) return false; return true; };
+  const rangeLbl = from&&to?(from+' → '+to):(from?('من '+from):(to?('حتى '+to):'كل الوقت'));
+  // Per-technician stats — each technician's own invoices, no reassignment
   const stats=D.techs.map(t=>{
-    const tInvs=D.invs.filter(i=>i.tn===t.name);
-    const tot=tInvs.length;
-    const mth=tInvs.filter(i=>i.date?.startsWith(mo)).length;
-    const baseRev=tInvs.reduce((s,i)=>s+i.tot,0);
-    let pedCount=0, pedCountMonth=0, pedRev=0;
-    tInvs.forEach(inv=>{
-      (inv.svcs||[]).forEach(s=>{
-        if(s.n&&s.n.includes('باديكير')){
-          pedCount++; pedRev+=(s.p||0);
-          if(inv.date?.startsWith(mo)) pedCountMonth++;
-        }
-      });
-    });
-    return {t,tot,mth,baseRev,pedCount,pedCountMonth,pedRev};
+    const tInvs=D.invs.filter(i=>i.tn===t.name).filter(i=>inRange(i.date));
+    const rangeCount=tInvs.length;
+    const rangeRev=tInvs.reduce((s,i)=>s+i.tot,0);
+    return {t,rangeCount,rangeRev};
   });
 
-  // Pedicures (count + revenue) from every technician OTHER than نيرمين get moved to her
-  let movedCount=0, movedMonthCount=0, movedRev=0;
-  stats.forEach(s=>{ if(s.t.name!==NIRMEEN){ movedCount+=s.pedCount; movedMonthCount+=s.pedCountMonth; movedRev+=s.pedRev; } });
-
-  c.innerHTML=stats.map(({t,tot,mth,baseRev,pedCount,pedCountMonth,pedRev})=>{
-    const isNirmeen=t.name===NIRMEEN;
-    const netTot=isNirmeen?(tot+movedCount):(tot-pedCount);
-    const netMth=isNirmeen?(mth+movedMonthCount):(mth-pedCountMonth);
-    const netRev=isNirmeen?(baseRev+movedRev):(baseRev-pedRev);
+  c.innerHTML=stats.map(({t,rangeCount,rangeRev})=>{
     return `<div class="panel">
       <div class="ph">
         <div><div style="font-weight:700;font-size:15px">${t.name}</div><div style="font-size:12px;color:var(--light)">${t.role||'فنية'}</div></div>
@@ -1012,9 +1067,9 @@ function rtech(){
       <div class="pb">
         <div class="sr"><span class="sl">أيام العمل</span><span class="sv" style="font-size:12px">${t.days?.length?t.days.map(d=>DAR[d]||d).join('، '):'كل الأيام'}</span></div>
         <div class="sr"><span class="sl">الموبايل</span><span class="sv">${t.mobile||'—'}</span></div>
-        <div class="sr"><span class="sl">حجوزات هذا الشهر</span><span class="sv">${netMth}</span></div>
-        <div class="sr"><span class="sl">إجمالي الحجوزات</span><span class="sv">${netTot}</span></div>
-        <div class="sr"><span class="sl">إجمالي الإيرادات</span><span class="sv">${netRev.toFixed(2)} ج</span></div>
+        <div class="alert alert-i" style="margin:10px 0 6px;padding:6px 10px;font-size:11px">${rangeLbl}</div>
+        <div class="sr"><span class="sl">إجمالي الحجوزات</span><span class="sv">${rangeCount}</span></div>
+        <div class="sr"><span class="sl">إجمالي الإيرادات</span><span class="sv" style="color:var(--rose);font-weight:700">${rangeRev.toFixed(2)} ج</span></div>
         <div style="margin-top:11px"><button class="btn btn-d btn-sm" onclick="delTech('${t.id}')">حذف الفنية</button></div>
       </div>
     </div>`;
@@ -1821,7 +1876,8 @@ function setMobNav(id) {
 document.getElementById('tdate').textContent=new Date().toLocaleDateString('ar-EG',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 const ck=[['rent','c-rent'],['sal','c-sal'],['util','c-util'],['sup','c-sup'],['mkt','c-mkt'],['oth','c-oth']];
 ck.forEach(([k,id])=>{const el=document.getElementById(id);if(el&&D.costs[k])el.value=D.costs[k];});
-initMF(); rdls(); setInvRange('month'); setExpRange('month'); setBkRange('month');
+initMF(); rdls(); setInvRange('month'); setExpRange('month'); setBkRange('month'); setTechRange('month');
+checkAuth();
 // Restore whichever page was open before a refresh (via URL hash), default to dashboard
 const VALID_PAGES=['dash','book','inv','exp','cl','tech','prices','offers','reports','waitlist','stock','settings','cash'];
 const startPage=VALID_PAGES.includes(location.hash.replace('#',''))?location.hash.replace('#',''):'dash';

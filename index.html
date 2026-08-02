@@ -7,6 +7,23 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+<div class="ov on" id="login-screen" style="background:var(--cream);z-index:5000">
+  <div class="modal" style="width:340px;max-width:92vw">
+    <div style="padding:34px 26px 8px;text-align:center">
+      <img src="" id="login-logo" style="width:72px;height:72px;object-fit:cover;border-radius:50%;display:block;margin:0 auto 10px">
+      <h2 style="font-size:17px;font-weight:700;color:var(--dark);margin-bottom:2px">نل نيلز & سبا</h2>
+      <p style="font-size:12px;color:var(--light);margin-bottom:22px">تسجيل الدخول للإدارة</p>
+    </div>
+    <div style="padding:0 26px 28px">
+      <div class="fg"><label>اسم المستخدم</label><input type="text" id="login-user" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()"></div>
+      <div class="fg"><label>كلمة المرور</label><input type="password" id="login-pass" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div id="login-err" class="alert alert-w" style="display:none;margin-bottom:12px">اسم المستخدم أو كلمة المرور غير صحيحة</div>
+      <button class="btn btn-p" style="width:100%;justify-content:center" onclick="doLogin()">دخول</button>
+    </div>
+  </div>
+</div>
+
 <div class="app">
 
 <div class="sb">
@@ -15,20 +32,23 @@
   <p style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:4px">نيلز & سبا · الإدارة</p>
 </div>
   <nav class="nav">
-    <div class="ni on" onclick="goTo('dash')"><span>⊞</span><span>الرئيسية</span></div>
-    <div class="ni" onclick="goTo('book')"><span>◷</span><span>الحجوزات</span></div>
-    <div class="ni" onclick="goTo('inv')"><span>◻</span><span>الفواتير</span></div>
-    <div class="ni" onclick="goTo('exp')"><span>◈</span><span>المصروفات</span></div>
-    <div class="ni" onclick="goTo('cash')"><span>🗄️</span><span>الخزنة</span></div>
-    <div class="ni" onclick="goTo('cl')"><span>◎</span><span>العملاء</span></div>
-    <div class="ni" onclick="goTo('tech')"><span>◆</span><span>الفنيات</span></div>
-    <div class="ni" onclick="goTo('prices')"><span>✦</span><span>قائمة الأسعار</span></div>
-    <div class="ni" onclick="goTo('offers')"><span>🎁</span><span>العروض الشهرية</span></div>
-    <div class="ni" onclick="goTo('reports')"><span>📊</span><span>التقارير</span></div>
-    <div class="ni" onclick="goTo('waitlist')"><span>⏳</span><span>قائمة الانتظار</span></div>
-    <div class="ni" onclick="goTo('stock')"><span>📦</span><span>المخزون</span></div>
-    <div class="ni" onclick="goTo('settings')"><span>⚙️</span><span>الإعدادات</span></div>
+    <div class="ni on" data-page="dash" onclick="goTo('dash')"><span>⊞</span><span>الرئيسية</span></div>
+    <div class="ni" data-page="book" onclick="goTo('book')"><span>◷</span><span>الحجوزات</span></div>
+    <div class="ni" data-page="inv" onclick="goTo('inv')"><span>◻</span><span>الفواتير</span></div>
+    <div class="ni" data-page="exp" onclick="goTo('exp')"><span>◈</span><span>المصروفات</span></div>
+    <div class="ni" data-page="cash" onclick="goTo('cash')"><span>🗄️</span><span>الخزنة</span></div>
+    <div class="ni" data-page="cl" onclick="goTo('cl')"><span>◎</span><span>العملاء</span></div>
+    <div class="ni" data-page="tech" onclick="goTo('tech')"><span>◆</span><span>الفنيات</span></div>
+    <div class="ni" data-page="prices" onclick="goTo('prices')"><span>✦</span><span>قائمة الأسعار</span></div>
+    <div class="ni" data-page="offers" onclick="goTo('offers')"><span>🎁</span><span>العروض الشهرية</span></div>
+    <div class="ni" data-page="reports" onclick="goTo('reports')"><span>📊</span><span>التقارير</span></div>
+    <div class="ni" data-page="waitlist" onclick="goTo('waitlist')"><span>⏳</span><span>قائمة الانتظار</span></div>
+    <div class="ni" data-page="stock" onclick="goTo('stock')"><span>📦</span><span>المخزون</span></div>
+    <div class="ni" data-page="settings" onclick="goTo('settings')"><span>⚙️</span><span>الإعدادات</span></div>
   </nav>
+  <div style="padding:10px 20px 16px;border-top:1px solid rgba(255,255,255,.08)">
+    <button class="btn btn-s" style="width:100%;justify-content:center" onclick="doLogout()">🚪 تسجيل خروج</button>
+  </div>
 </div>
 
 <div class="main">
@@ -181,44 +201,20 @@
           <option value="">الكل</option>
           <option value="كاش">كاش</option>
           <option value="حساب">حساب</option>
+          <option value="خزنة">خزنة</option>
         </select>
         <div style="margin-right:auto"><button class="btn btn-p" onclick="openExpMod()">+ إضافة مصروف</button></div>
       </div>
       <div class="alert alert-i">أدخل التكاليف الثابتة الشهرية لحساب نقطة التعادل.</div>
-      <div class="g3" style="margin-bottom:12px">
-        <div class="card" style="border-top:3px solid var(--gold)">
-          <div class="ct">💰 إجمالي الإيرادات</div>
-          <div class="cv" id="ep-total-rev">0 ج</div>
-          <div class="cs">إجمالي فواتير الشهر</div>
-        </div>
+      <div class="g2" style="margin-bottom:12px">
         <div class="card ra"><div class="ct">إجمالي المصروفات</div><div class="cv" id="exp-tot">0 ج</div></div>
         <div class="card ga"><div class="ct">هدف نقطة التعادل</div><div class="cv" id="exp-be">0 ج</div><div class="cs">الإيراد المطلوب</div></div>
-      </div>
-      <!-- إيرادات الشهر مقسمة بطريقة الدفع -->
-      <div class="panel" style="margin-bottom:14px">
-        <div class="ph"><h3>💰 إيرادات الشهر حسب طريقة الدفع</h3></div>
-        <div class="pb">
-          <div class="g3">
-            <div style="text-align:center;padding:10px">
-              <div style="font-size:11px;font-weight:700;color:var(--light);margin-bottom:4px">💵 كاش</div>
-              <div style="font-size:22px;font-weight:700;color:#3A7A4A" id="ep-cash">0 ج</div>
-            </div>
-            <div style="text-align:center;padding:10px;border-right:1px solid var(--border);border-left:1px solid var(--border)">
-              <div style="font-size:11px;font-weight:700;color:var(--light);margin-bottom:4px">💳 كارت</div>
-              <div style="font-size:22px;font-weight:700;color:#3A4A7A" id="ep-card">0 ج</div>
-            </div>
-            <div style="text-align:center;padding:10px">
-              <div style="font-size:11px;font-weight:700;color:var(--light);margin-bottom:4px">🏦 تحويل - انستاباي</div>
-              <div style="font-size:22px;font-weight:700;color:#7A6A3A" id="ep-transfer">0 ج</div>
-            </div>
-          </div>
-        </div>
       </div>
       <!-- مصروفات الشهر مقسمة بطريقة الدفع -->
       <div class="panel" style="margin-bottom:14px">
         <div class="ph"><h3>💸 مصروفات الشهر حسب طريقة الدفع</h3></div>
         <div class="pb">
-          <div class="g2">
+          <div class="g3">
             <div style="text-align:center;padding:10px">
               <div style="font-size:11px;font-weight:700;color:var(--light);margin-bottom:4px">💵 كاش</div>
               <div style="font-size:22px;font-weight:700;color:#3A7A4A" id="ep-exp-cash">0 ج</div>
@@ -226,6 +222,10 @@
             <div style="text-align:center;padding:10px;border-right:1px solid var(--border)">
               <div style="font-size:11px;font-weight:700;color:var(--light);margin-bottom:4px">🏦 حساب</div>
               <div style="font-size:22px;font-weight:700;color:#3A4A7A" id="ep-exp-acc">0 ج</div>
+            </div>
+            <div style="text-align:center;padding:10px;border-right:1px solid var(--border)">
+              <div style="font-size:11px;font-weight:700;color:var(--light);margin-bottom:4px">🗄️ خزنة</div>
+              <div style="font-size:22px;font-weight:700;color:#7A5A2A" id="ep-exp-vault">0 ج</div>
             </div>
           </div>
         </div>
@@ -265,7 +265,7 @@
         <div class="card ga">
           <div class="ct">🏠 الكاش في الخزنة</div>
           <div class="cv" id="cw-home">0 ج</div>
-          <div class="cs">إجمالي المسحوب من الصالون للخزنة</div>
+          <div class="cs">إجمالي المسحوب − مصروفات مدفوعة من الخزنة</div>
         </div>
       </div>
       <div class="panel">
@@ -307,8 +307,14 @@
 
     <!-- TECHNICIANS -->
     <div class="pg" id="pg-tech">
-      <div style="display:flex;justify-content:flex-start;margin-bottom:14px">
-        <button class="btn btn-p" onclick="openTechMod()">+ إضافة فنية</button>
+      <div class="mbar">
+        <label>من:</label>
+        <input type="date" class="msel" id="tech-from" onchange="rtech()">
+        <label>إلى:</label>
+        <input type="date" class="msel" id="tech-to" onchange="rtech()">
+        <button class="btn btn-sm" style="background:var(--rose-l);color:var(--rose);border:1px solid var(--rose-m)" onclick="setTechRange('month')">هذا الشهر</button>
+        <button class="btn btn-s btn-sm" onclick="setTechRange('all')">كل الوقت</button>
+        <div style="margin-right:auto"><button class="btn btn-p" onclick="openTechMod()">+ إضافة فنية</button></div>
       </div>
       <div id="tech-cards" class="g3"></div>
     </div>
@@ -768,6 +774,7 @@
           <select id="ex-pay">
             <option value="كاش">كاش</option>
             <option value="حساب">حساب</option>
+            <option value="خزنة">خزنة</option>
           </select>
         </div>
       </div>
@@ -938,6 +945,9 @@
     </button>
     <button class="mob-more-item" onclick="syncFromDB();toggleMoreMenu()">
       <span class="ico">🔄</span><span>تحديث</span>
+    </button>
+    <button class="mob-more-item" onclick="doLogout();toggleMoreMenu()">
+      <span class="ico">🚪</span><span>خروج</span>
     </button>
   </div>
 </div>
