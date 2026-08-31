@@ -801,14 +801,23 @@ function saveInv(){
   editInvId=null;
   closeM('mo-inv'); rinv(); rdash();
 }
+function fillInvTechFilter(){
+  const s=document.getElementById('inv-tech-filter'); if(!s) return;
+  const v=s.value;
+  s.innerHTML='<option value="">الكل</option>';
+  D.techs.forEach(t=>{const o=document.createElement('option');o.value=t.name;o.textContent=t.name;if(t.name===v)o.selected=true;s.appendChild(o);});
+}
 function rinv(f){
+  fillInvTechFilter();
   const from=document.getElementById('inv-from')?.value||'';
   const to=document.getElementById('inv-to')?.value||'';
   const payf=document.getElementById('inv-pay-filter')?.value||'';
+  const techf=document.getElementById('inv-tech-filter')?.value||'';
   let list=[...D.invs].filter(i=>{
     if(from && (!i.date || i.date<from)) return false;
     if(to && (!i.date || i.date>to)) return false;
     if(payf && i.pay!==payf) return false;
+    if(techf && i.tn!==techf) return false;
     return true;
   }).reverse();
   if(f) list=list.filter(i=>i.cn.includes(f));
@@ -818,7 +827,7 @@ function rinv(f){
     ? `<b>${list.length}</b> فاتورة`
     : `<b>${list.length}</b> فاتورة &nbsp;|&nbsp; إجمالي: <b>${tot.toFixed(0)} ج</b>`;
   const ttl=document.getElementById('inv-ttl');
-  if(ttl) ttl.textContent = 'فواتير '+(from&&to?(from+' → '+to):(from?('من '+from):(to?('حتى '+to):'كل الوقت')))+(payf?(' · '+payf):'');
+  if(ttl) ttl.textContent = 'فواتير '+(from&&to?(from+' → '+to):(from?('من '+from):(to?('حتى '+to):'كل الوقت')))+(payf?(' · '+payf):'')+(techf?(' · '+techf):'');
   const tb=document.getElementById('inv-body');
   if(!list.length){tb.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--light);padding:24px">لا توجد فواتير في الفترة المحددة.</td></tr>';return;}
   tb.innerHTML=list.map(inv=>`<tr>
