@@ -251,6 +251,10 @@ function showSyncStatus(msg, ok=false, warn=false) {
 }
 
 function uid(){ return Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4); }
+// Normalizes a client name for comparison only (trims edges, collapses internal double-spaces).
+// Deliberately conservative — does NOT touch Arabic letter variants or fuzzy-match spellings,
+// since that risks merging two different people who happen to have similar names.
+function normName(s){ return (s||'').trim().replace(/\s+/g,' '); }
 
 // ===== HELPERS =====
 function tds(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
@@ -491,12 +495,38 @@ function createInvFromBk(id){
   closeM('mo-slot');
   openInvMod(null, b);
 }
+function onBkClInput(){
+  const nameVal=document.getElementById('bk-cl').value;
+  const mobEl=document.getElementById('bk-mob');
+  document.getElementById('bk-mob-matches').style.display='none';
+  if(mobEl.value.trim()) return; // don't override a phone number she already typed
+  const match=D.cls.find(c=>normName(c.name)===normName(nameVal));
+  if(match && match.mobile) mobEl.value=match.mobile;
+}
+function onBkMobInput(){
+  const mobEl=document.getElementById('bk-mob');
+  const clEl=document.getElementById('bk-cl');
+  const box=document.getElementById('bk-mob-matches');
+  const val=mobEl.value.trim();
+  box.style.display='none'; box.innerHTML='';
+  if(!val || clEl.value.trim()) return; // don't guess if a name is already typed
+  const matches=D.cls.filter(c=>(c.mobile||'').trim()===val);
+  if(matches.length===1){
+    clEl.value=matches[0].name;
+  } else if(matches.length>1){
+    const esc=s=>(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    box.style.display='block';
+    box.innerHTML='<div style="font-size:11px;color:var(--light);margin-bottom:4px">فيه أكتر من عميلة بنفس الرقم — اختاري:</div>'+
+      matches.map(m=>`<button type="button" class="btn btn-s btn-sm" style="margin:0 4px 4px 0" onclick="document.getElementById('bk-cl').value='${esc(m.name)}';document.getElementById('bk-mob-matches').style.display='none'">${m.name}</button>`).join('');
+  }
+}
 function openBkMod(ds,sk,editId,defaultTechName){
   editBkId=editId||null;
   const b=editBkId?D.bks.find(x=>x.id===editBkId):null;
   document.getElementById('bk-mo-ttl').textContent=b?'تعديل الحجز':(defaultTechName?'حجز إضافي على نفس الموعد':'حجز جديد');
   document.getElementById('bk-cl').value=b?b.cn:'';
   document.getElementById('bk-mob').value=b?(b.mob||''):'';
+  document.getElementById('bk-mob-matches').style.display='none';
   document.getElementById('bk-notes').value=b?(b.notes||''):'';
   document.getElementById('bk-dt').value=b?b.date:(ds||tds(new Date()));
   document.getElementById('bk-warn').style.display='none';
@@ -734,7 +764,7 @@ function openInvMod(id, fromBk){
   openM('mo-inv');
 }
 function saveInv(){
-  const cl=document.getElementById('in-cl').value.trim();
+  const cl=normName(document.getElementById('in-cl').value);
   if(!cl){showErr('أدخلي اسم العميلة.');return;}
   if(!ilines.length){showErr('أضيفي خدمة واحدة على الأقل.');return;}
   const sub=ilines.reduce((s,l)=>s+(l.p||0),0);
@@ -756,7 +786,7 @@ function saveInv(){
       tn:tn==='غير محدد'?'':tn,notes:document.getElementById('in-notes').value,createdAt:new Date().toISOString()};
     if(pendingBkLink) inv.bkId=pendingBkLink.bkId;
     D.invs.push(inv);
-    let c=D.cls.find(c=>c.name===cl);
+    let c=D.cls.find(c=>normName(c.name)===cl);
     if(!c){c={id:uid(),name:cl,mobile:pendingBkLink?.mob||'',createdAt:new Date().toISOString()};D.cls.push(c);rdls();}
     else if(pendingBkLink?.mob && !c.mobile){ c.mobile=pendingBkLink.mob; }
     c.lv=inv.date; c.ltv=(c.ltv||0)+inv.tot; c.vc=(c.vc||0)+1;
@@ -939,11 +969,15 @@ function openClMod(id){
   openM('mo-cl');
 }
 function saveCl(){
-  const nm=document.getElementById('cl-nm').value.trim();
+  const nm=normName(document.getElementById('cl-nm').value);
   if(!nm){showErr('الاسم مطلوب.');return;}
   const d={name:nm,mobile:document.getElementById('cl-mob').value.trim(),birthday:document.getElementById('cl-bd').value,address:document.getElementById('cl-addr').value,referredBy:document.getElementById('cl-ref').value,skinType:document.getElementById('cl-skin').value,allergies:document.getElementById('cl-alg').value,notes:document.getElementById('cl-nt').value};
   if(editCid){const c=D.cls.find(x=>x.id===editCid);if(c){Object.assign(c,d);svRecord('nelle_clients',c);}}
-  else{const nc={id:uid(),...d,createdAt:new Date().toISOString()};D.cls.push(nc);svRecord('nelle_clients',nc);}
+  else{
+    const dup=D.cls.find(c=>normName(c.name)===nm);
+    if(dup){ showErr(`⚠️ فيه عميلة بنفس الاسم "${dup.name}" بالفعل — افتحيها وعدّلي بياناتها بدل إضافة عميلة جديدة`); return; }
+    const nc={id:uid(),...d,createdAt:new Date().toISOString()};D.cls.push(nc);svRecord('nelle_clients',nc);
+  }
   sv(); closeM('mo-cl'); rcl(); rdls();
 }
 function viewCl(id){
@@ -1321,7 +1355,7 @@ async function rebuildClientsFromInvoices(){
     // 2) rebuild fresh from invoice history
     const stats={};
     D.invs.forEach(inv=>{
-      const name=(inv.cn||'').trim();
+      const name=normName(inv.cn);
       if(!name) return;
       if(!stats[name]) stats[name]={ltv:0,vc:0,lv:''};
       stats[name].ltv += inv.tot||0;

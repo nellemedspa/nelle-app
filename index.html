@@ -688,8 +688,12 @@
     <div class="mh"><h3 id="bk-mo-ttl">حجز جديد</h3><button class="mc" onclick="closeM('mo-bk')">✕</button></div>
     <div class="mb">
       <div class="fr">
-        <div class="fg"><label>اسم العميلة</label><input type="text" id="bk-cl" placeholder="الاسم" list="cldl"></div>
-        <div class="fg"><label>الموبايل</label><input type="text" id="bk-mob" placeholder="01..."></div>
+        <div class="fg"><label>اسم العميلة</label><input type="text" id="bk-cl" placeholder="الاسم" list="cldl" oninput="onBkClInput()"></div>
+        <div class="fg">
+          <label>الموبايل</label>
+          <input type="text" id="bk-mob" placeholder="01..." oninput="onBkMobInput()">
+          <div id="bk-mob-matches" style="display:none;margin-top:6px"></div>
+        </div>
       </div>
       <datalist id="cldl"></datalist>
       <div class="fr">
