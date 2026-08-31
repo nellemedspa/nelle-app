@@ -972,12 +972,26 @@ function saveCl(){
   const nm=normName(document.getElementById('cl-nm').value);
   if(!nm){showErr('الاسم مطلوب.');return;}
   const d={name:nm,mobile:document.getElementById('cl-mob').value.trim(),birthday:document.getElementById('cl-bd').value,address:document.getElementById('cl-addr').value,referredBy:document.getElementById('cl-ref').value,skinType:document.getElementById('cl-skin').value,allergies:document.getElementById('cl-alg').value,notes:document.getElementById('cl-nt').value};
-  if(editCid){const c=D.cls.find(x=>x.id===editCid);if(c){Object.assign(c,d);svRecord('nelle_clients',c);}}
-  else{
-    const dup=D.cls.find(c=>normName(c.name)===nm);
-    if(dup){ showErr(`⚠️ فيه عميلة بنفس الاسم "${dup.name}" بالفعل — افتحيها وعدّلي بياناتها بدل إضافة عميلة جديدة`); return; }
-    const nc={id:uid(),...d,createdAt:new Date().toISOString()};D.cls.push(nc);svRecord('nelle_clients',nc);
+  if(editCid){
+    const c=D.cls.find(x=>x.id===editCid);
+    if(c){Object.assign(c,d);svRecord('nelle_clients',c);}
+    sv(); closeM('mo-cl'); rcl(); rdls();
+    return;
   }
+  // New client — block on exact-name duplicates (unsafe to allow), warn-but-allow on shared phone numbers
+  const dup=D.cls.find(c=>normName(c.name)===nm);
+  if(dup){ showErr(`⚠️ فيه عميلة بنفس الاسم "${dup.name}" بالفعل — افتحيها وعدّلي بياناتها بدل إضافة عميلة جديدة`); return; }
+  if(d.mobile){
+    const sameMob=D.cls.find(c=>(c.mobile||'').trim()===d.mobile);
+    if(sameMob){
+      ask(`⚠️ رقم الموبايل ده مسجل بالفعل لعميلة اسمها "${sameMob.name}". لو دي نفس العميلة، افتحي بياناتها بدل ما تضيفي عميلة جديدة. لو شخص تاني (زي الأم والبنت)، اضغطي "نعم، تأكيد" للمتابعة.`, ()=>{ commitNewClient(d); });
+      return;
+    }
+  }
+  commitNewClient(d);
+}
+function commitNewClient(d){
+  const nc={id:uid(),...d,createdAt:new Date().toISOString()};D.cls.push(nc);svRecord('nelle_clients',nc);
   sv(); closeM('mo-cl'); rcl(); rdls();
 }
 function viewCl(id){
