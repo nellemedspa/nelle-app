@@ -848,11 +848,16 @@ function delInv(id){
 }
 
 // ===== EXPENSES =====
-function openExpMod(){
-  document.getElementById('ex-dt').value=tds(new Date());
-  document.getElementById('ex-desc').value='';
-  document.getElementById('ex-amt').value='';
-  document.getElementById('ex-pay').value='كاش';
+let editExpId=null;
+function openExpMod(id){
+  editExpId=id||null;
+  const e=editExpId?D.exps.find(x=>x.id===editExpId):null;
+  document.getElementById('exp-mo-ttl').textContent=e?'تعديل المصروف':'إضافة مصروف';
+  document.getElementById('ex-dt').value=e?e.date:tds(new Date());
+  document.getElementById('ex-cat').value=e?e.cat:'مستلزمات';
+  document.getElementById('ex-desc').value=e?e.desc:'';
+  document.getElementById('ex-amt').value=e?e.amt:'';
+  document.getElementById('ex-pay').value=e?(e.pay||'كاش'):'كاش';
   openM('mo-exp');
 }
 function saveExp(){
@@ -861,9 +866,16 @@ function saveExp(){
   const dt=document.getElementById('ex-dt').value;
   if(!dt||!amt||!desc){showErr('يرجى تعبئة جميع الحقول.');return;}
   const pay=document.getElementById('ex-pay').value;
-  const newExp={id:uid(),date:dt,cat:document.getElementById('ex-cat').value,desc,amt,pay,createdAt:new Date().toISOString()};
-  D.exps.push(newExp);
-  svRecord('nelle_expenses',newExp); closeM('mo-exp'); rexp(); rdash();
+  const cat=document.getElementById('ex-cat').value;
+  if(editExpId){
+    const e=D.exps.find(x=>x.id===editExpId);
+    if(e){ Object.assign(e,{date:dt,cat,desc,amt,pay}); svRecord('nelle_expenses',e); }
+  } else {
+    const newExp={id:uid(),date:dt,cat,desc,amt,pay,createdAt:new Date().toISOString()};
+    D.exps.push(newExp);
+    svRecord('nelle_expenses',newExp);
+  }
+  closeM('mo-exp'); rexp(); rdash();
 }
 function rexp(){
   const from=document.getElementById('exp-from')?.value||'';
@@ -895,7 +907,10 @@ function rexp(){
     <td>${e.date}</td><td><span class="badge ${cc[e.cat]||'bx'}">${e.cat}</span></td>
     <td>${e.desc}</td><td><strong>${e.amt.toFixed(2)} ج</strong></td>
     <td><span class="badge ${pc[pay]||'bx'}">${pay}</span></td>
-    <td><button class="btn btn-d btn-sm" onclick="delExp('${e.id}')">حذف</button></td>
+    <td><div style="display:flex;gap:5px">
+      <button class="btn btn-s btn-sm" onclick="openExpMod('${e.id}')">✏️</button>
+      <button class="btn btn-d btn-sm" onclick="delExp('${e.id}')">حذف</button>
+    </div></td>
   </tr>`;}).join('');
   updbe(totalRev,totAll);
 }
@@ -1081,19 +1096,41 @@ function rcl(f){
 }
 
 // ===== TECHNICIANS =====
-function openTechMod(){
-  ['tc-nm','tc-role','tc-mob'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('tc-type').value='full';
-  document.querySelectorAll('.td').forEach(c=>c.checked=false);
+let editTechId=null;
+function openTechMod(id){
+  editTechId=id||null;
+  const t=editTechId?D.techs.find(x=>x.id===editTechId):null;
+  document.getElementById('tech-mo-ttl').textContent=t?'تعديل الفنية':'إضافة فنية';
+  document.getElementById('tc-nm').value=t?t.name:'';
+  document.getElementById('tc-role').value=t?(t.role||''):'';
+  document.getElementById('tc-mob').value=t?(t.mobile||''):'';
+  document.getElementById('tc-type').value=t?(t.type||'full'):'full';
+  document.querySelectorAll('.td').forEach(c=>c.checked=t?(t.days||[]).includes(c.value):false);
   openM('mo-tech');
 }
 function saveTech(){
   const nm=document.getElementById('tc-nm').value.trim();
   if(!nm){showErr('الاسم مطلوب.');return;}
   const days=[...document.querySelectorAll('.td:checked')].map(c=>c.value);
-  const nt={id:uid(),name:nm,role:document.getElementById('tc-role').value,mobile:document.getElementById('tc-mob').value,type:document.getElementById('tc-type').value,days,createdAt:new Date().toISOString()};
-  D.techs.push(nt);
-  svRecord('nelle_techs',nt); closeM('mo-tech'); rtech(); rcal();
+  const d={name:nm,role:document.getElementById('tc-role').value,mobile:document.getElementById('tc-mob').value,type:document.getElementById('tc-type').value,days};
+  if(editTechId){
+    const t=D.techs.find(x=>x.id===editTechId);
+    if(t){
+      const oldName=t.name;
+      Object.assign(t,d);
+      svRecord('nelle_techs',t);
+      // Keep invoices/bookings pointing at the right name if it changed
+      if(oldName!==t.name){
+        D.invs.forEach(i=>{ if(i.tn===oldName){ i.tn=t.name; svRecord('nelle_invoices',i); } });
+        D.bks.forEach(b=>{ if(b.tid===t.id){ b.tn=t.name; svRecord('nelle_bookings',b); } });
+      }
+    }
+  } else {
+    const nt={id:uid(),...d,createdAt:new Date().toISOString()};
+    D.techs.push(nt);
+    svRecord('nelle_techs',nt);
+  }
+  closeM('mo-tech'); rtech(); rcal();
 }
 function delTech(id){
   ask('هل تريدين حذف هذه الفنية؟', ()=>{
@@ -1127,7 +1164,10 @@ function rtech(){
         <div class="alert alert-i" style="margin:10px 0 6px;padding:6px 10px;font-size:11px">${rangeLbl}</div>
         <div class="sr"><span class="sl">إجمالي الحجوزات</span><span class="sv">${rangeCount}</span></div>
         <div class="sr"><span class="sl">إجمالي الإيرادات</span><span class="sv" style="color:var(--rose);font-weight:700">${rangeRev.toFixed(2)} ج</span></div>
-        <div style="margin-top:11px"><button class="btn btn-d btn-sm" onclick="delTech('${t.id}')">حذف الفنية</button></div>
+        <div style="margin-top:11px;display:flex;gap:7px">
+          <button class="btn btn-s btn-sm" onclick="openTechMod('${t.id}')">✏️ تعديل</button>
+          <button class="btn btn-d btn-sm" onclick="delTech('${t.id}')">حذف الفنية</button>
+        </div>
       </div>
     </div>`;
   }).join('');
