@@ -104,15 +104,25 @@ const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 const SB_HEADERS = { 'Content-Type':'application/json', 'apikey': SB_KEY, 'Authorization': 'Bearer '+SB_KEY };
 
 async function sbGet(table) {
+  // Supabase returns at most 1000 rows per request, so fetch in pages until we have everything.
+  // (Without this, once a table passed 1000 rows the NEWEST rows were silently dropped.)
+  const PAGE = 1000;
+  let all = [], offset = 0;
   try {
-    const r = await fetch(`${SB_URL}/rest/v1/${table}?select=*&order=created_at.asc`, { headers: SB_HEADERS });
-    if (!r.ok) {
-      const msg = await r.text().catch(()=> '');
-      console.error(`sbGet failed for table "${table}":`, r.status, msg);
-      showSyncStatus(`⚠️ فشل تحميل بيانات "${table}" من قاعدة البيانات`, false, true);
-      return null;
+    while (true) {
+      const r = await fetch(`${SB_URL}/rest/v1/${table}?select=*&order=created_at.asc,id.asc&limit=${PAGE}&offset=${offset}`, { headers: SB_HEADERS });
+      if (!r.ok) {
+        const msg = await r.text().catch(()=> '');
+        console.error(`sbGet failed for table "${table}":`, r.status, msg);
+        showSyncStatus(`⚠️ فشل تحميل بيانات "${table}" من قاعدة البيانات`, false, true);
+        return null; // return null (not a partial list) so local data is never overwritten by an incomplete fetch
+      }
+      const rows = await r.json();
+      all = all.concat(rows);
+      if (rows.length < PAGE) break;
+      offset += PAGE;
     }
-    return await r.json();
+    return all;
   } catch(e) {
     console.error(`sbGet network error for table "${table}":`, e);
     showSyncStatus(`⚠️ فشل تحميل بيانات "${table}" من قاعدة البيانات`, false, true);
