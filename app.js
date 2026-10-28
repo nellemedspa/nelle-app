@@ -818,6 +818,7 @@ function fillInvTechFilter(){
   D.techs.forEach(t=>{const o=document.createElement('option');o.value=t.name;o.textContent=t.name;if(t.name===v)o.selected=true;s.appendChild(o);});
 }
 function rinv(f){
+  if(f===undefined) f=document.getElementById('inv-search')?.value||''; // keep the active search when re-rendered by the background refresh
   fillInvTechFilter();
   const from=document.getElementById('inv-from')?.value||'';
   const to=document.getElementById('inv-to')?.value||'';
@@ -1067,6 +1068,7 @@ function delCl(id){
   });
 }
 function rcl(f){
+  if(f===undefined) f=document.getElementById('cl-search')?.value||''; // keep the active search when re-rendered by the background refresh
   const now=new Date(), mo=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
   let list=[...D.cls];
   if(f) list=list.filter(c=>c.name.includes(f)||(c.mobile||'').includes(f));
@@ -1729,6 +1731,7 @@ function saveStock() {
   sv(); sbUpsertSettings('stock',D.stock); closeM('mo-stock'); rstock(); showErr('✓ تم الحفظ');
 }
 function rstock(f) {
+  if(f===undefined) f=document.getElementById('stock-search')?.value||''; // keep the active search when re-rendered by the background refresh
   const list=D.stock||[];
   document.getElementById('st-total').textContent=list.length;
   document.getElementById('st-low').textContent=list.filter(s=>s.qty>0&&s.qty<=s.min).length;
