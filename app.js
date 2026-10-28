@@ -1067,12 +1067,58 @@ function delCl(id){
     D.cls=D.cls.filter(c=>c.id!==id); delRecord('nelle_clients',id); closeM('mo-clv'); rcl();
   });
 }
+// ----- Clients: header sort + birth-month filter state -----
+let clSortKey='', clSortDir='', clBMonth='';
+const CL_SORT_DEFAULT={name:'asc',visits:'desc',last:'desc',ltv:'desc'};
+const CL_SORT_LABEL={name:'الاسم',visits:'الزيارات',last:'آخر زيارة',ltv:'إجمالي الإنفاق'};
+const CL_DIR_LABEL={name:{asc:'أ-ي',desc:'ي-أ'},visits:{desc:'الأكثر أولًا',asc:'الأقل أولًا'},last:{desc:'الأحدث أولًا',asc:'الأقدم أولًا'},ltv:{desc:'الأعلى أولًا',asc:'الأقل أولًا'}};
+// click cycle on a header: default direction -> reverse -> back to default order (newest added)
+function sortCl(key){
+  if(clSortKey!==key){ clSortKey=key; clSortDir=CL_SORT_DEFAULT[key]; }
+  else if(clSortDir===CL_SORT_DEFAULT[key]){ clSortDir=(clSortDir==='asc'?'desc':'asc'); }
+  else { clSortKey=''; clSortDir=''; }
+  rcl();
+}
+function setBMonth(m){ clBMonth=m?String(m):''; closeBdPop(); rcl(); }
+function resetClView(){ clSortKey=''; clSortDir=''; clBMonth=''; rcl(); }
+function closeBdPop(){ document.getElementById('bd-pop')?.classList.remove('on'); }
+function toggleBdPop(ev){
+  ev.stopPropagation();
+  const pop=document.getElementById('bd-pop'); if(!pop) return;
+  if(pop.classList.contains('on')){ pop.classList.remove('on'); return; }
+  const r=ev.currentTarget.getBoundingClientRect();
+  pop.classList.add('on');
+  const w=pop.offsetWidth, h=pop.offsetHeight;
+  pop.style.left=Math.min(Math.max(8,r.left),window.innerWidth-w-8)+'px';
+  let top=r.bottom+6; if(top+h>window.innerHeight-8) top=Math.max(8,r.top-h-6);
+  pop.style.top=top+'px';
+}
+document.addEventListener('click',e=>{ const p=document.getElementById('bd-pop'); if(p&&p.classList.contains('on')&&!p.contains(e.target)) p.classList.remove('on'); });
+window.addEventListener('resize',closeBdPop);
+document.addEventListener('scroll',closeBdPop,true);
+function updClHeaders(){
+  ['name','visits','last','ltv'].forEach(k=>{
+    const th=document.getElementById('clh-'+k); if(!th) return;
+    const on=clSortKey===k;
+    th.classList.toggle('on',on);
+    const ic=th.querySelector('.sort-ic'); if(ic) ic.textContent=on?(clSortDir==='asc'?'▲':'▼'):'⇅';
+  });
+  document.getElementById('bd-ic')?.classList.toggle('on',!!clBMonth);
+  document.querySelectorAll('.bd-m').forEach(b=>b.classList.toggle('on',b.dataset.m!=='' && b.dataset.m===String(clBMonth)));
+  const box=document.getElementById('cl-active'); if(!box) return;
+  const chips=[];
+  if(clSortKey) chips.push(`ترتيب: ${CL_SORT_LABEL[clSortKey]} (${CL_DIR_LABEL[clSortKey][clSortDir]})`);
+  if(clBMonth) chips.push(`شهر الميلاد: ${MAR[parseInt(clBMonth)-1]}`);
+  if(!chips.length){ box.style.display='none'; box.innerHTML=''; return; }
+  box.style.display='flex';
+  box.innerHTML=chips.map(t=>`<span class="cl-chip">${t}</span>`).join('')+'<button type="button" class="btn btn-s btn-sm" onclick="resetClView()">✕ إعادة ضبط</button>';
+}
 function rcl(f){
   if(f===undefined) f=document.getElementById('cl-search')?.value||''; // keep the active search when re-rendered by the background refresh
   const now=new Date(), mo=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
   let list=[...D.cls];
   if(f) list=list.filter(c=>c.name.includes(f)||(c.mobile||'').includes(f));
-  const bmonth=document.getElementById('cl-bmonth')?.value||'';
+  const bmonth=clBMonth;
   if(bmonth) list=list.filter(c=>c.birthday && parseInt(c.birthday.split('-')[1])===parseInt(bmonth));
   document.getElementById('cl-tot').textContent=D.cls.length;
   const mvisTot=D.invs.filter(i=>i.date?.startsWith(mo)).length;
@@ -1086,18 +1132,19 @@ function rcl(f){
     const last=[...invs].sort((a,b)=>b.date.localeCompare(a.date))[0];
     return {c, invs, ltv, last};
   });
-  const sortBy=document.getElementById('cl-sort')?.value||'newest';
+  const dm=clSortDir==='asc'?1:-1;
   rows.sort((a,b)=>{
-    if(sortBy==='az') return a.c.name.localeCompare(b.c.name,'ar');
-    if(sortBy==='visits') return b.invs.length-a.invs.length;
-    if(sortBy==='ltv') return b.ltv-a.ltv;
-    if(sortBy==='lastvisit') return (b.last?.date||'').localeCompare(a.last?.date||'');
-    if(sortBy==='lastvisit_old'){ // longest since last visit first; clients with no visits go last
-      if(!a.last&&!b.last) return 0; if(!a.last) return 1; if(!b.last) return -1;
-      return a.last.date.localeCompare(b.last.date);
+    switch(clSortKey){
+      case 'name': return dm*a.c.name.localeCompare(b.c.name,'ar');
+      case 'visits': return dm*(a.invs.length-b.invs.length);
+      case 'ltv': return dm*(a.ltv-b.ltv);
+      case 'last': // clients with no visits always go last
+        if(!a.last&&!b.last) return 0; if(!a.last) return 1; if(!b.last) return -1;
+        return dm*a.last.date.localeCompare(b.last.date);
+      default: return (b.c.createdAt||'').localeCompare(a.c.createdAt||''); // newest added (default)
     }
-    return (b.c.createdAt||'').localeCompare(a.c.createdAt||''); // newest (default)
   });
+  updClHeaders();
   if(!rows.length){tb.innerHTML=`<tr><td colspan="7" style="text-align:center;color:var(--light);padding:24px">${(f||bmonth)?'لا توجد عميلات مطابقة.':'لا توجد عميلات بعد.'}</td></tr>`;return;}
   tb.innerHTML=rows.map(({c,invs,ltv,last})=>{
     const bday=c.birthday?pld(c.birthday):null;

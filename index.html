@@ -287,30 +287,6 @@
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <div class="swrap"><input class="sinp" id="cl-search" placeholder="ابحث بالاسم أو الموبايل..." oninput="rcl(this.value)"><span class="sico">🔍</span></div>
-          <select class="msel" id="cl-sort" onchange="rcl(document.getElementById('cl-search').value)">
-            <option value="newest">الأحدث إضافة</option>
-            <option value="az">الاسم (أ-ي)</option>
-            <option value="visits">الأكثر عودة (زيارات)</option>
-            <option value="ltv">الأعلى إنفاقًا</option>
-            <option value="lastvisit">آخر زيارة (الأحدث أولًا)</option>
-            <option value="lastvisit_old">آخر زيارة (الأقدم أولًا)</option>
-          </select>
-          <label style="font-size:12px;font-weight:700;color:var(--mid)">شهر الميلاد:</label>
-          <select class="msel" id="cl-bmonth" onchange="rcl()">
-            <option value="">الكل</option>
-            <option value="1">يناير</option>
-            <option value="2">فبراير</option>
-            <option value="3">مارس</option>
-            <option value="4">أبريل</option>
-            <option value="5">مايو</option>
-            <option value="6">يونيو</option>
-            <option value="7">يوليو</option>
-            <option value="8">أغسطس</option>
-            <option value="9">سبتمبر</option>
-            <option value="10">أكتوبر</option>
-            <option value="11">نوفمبر</option>
-            <option value="12">ديسمبر</option>
-          </select>
         </div>
         <button class="btn btn-p" onclick="openClMod()">+ إضافة عميلة</button>
       </div>
@@ -319,10 +295,15 @@
         <div class="card"><div class="ct">زيارات هذا الشهر</div><div class="cv" id="cl-vis">0</div></div>
         <div class="card"><div class="ct">عادوا للصالون</div><div class="cv" id="cl-rb">0</div></div>
       </div>
+      <div id="cl-active" class="cl-active" style="display:none"></div>
       <div class="panel">
         <div class="ph"><h3>قاعدة بيانات العملاء</h3></div>
-        <table><thead><tr><th>الاسم</th><th>الموبايل</th><th>تاريخ الميلاد</th><th>الزيارات</th><th>آخر زيارة</th><th>إجمالي الإنفاق</th><th></th></tr></thead>
+        <table><thead><tr><th class="th-sort" id="clh-name" onclick="sortCl('name')" title="ترتيب">الاسم <span class="sort-ic">⇅</span></th><th>الموبايل</th><th>تاريخ الميلاد <button type="button" class="th-ic" id="bd-ic" onclick="toggleBdPop(event)" title="فلترة بشهر الميلاد" aria-label="فلترة بشهر الميلاد"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z"/></svg></button></th><th class="th-sort" id="clh-visits" onclick="sortCl('visits')" title="ترتيب">الزيارات <span class="sort-ic">⇅</span></th><th class="th-sort" id="clh-last" onclick="sortCl('last')" title="ترتيب">آخر زيارة <span class="sort-ic">⇅</span></th><th class="th-sort" id="clh-ltv" onclick="sortCl('ltv')" title="ترتيب">إجمالي الإنفاق <span class="sort-ic">⇅</span></th><th></th></tr></thead>
         <tbody id="cl-body"></tbody></table>
+      </div>
+      <div id="bd-pop" class="th-pop">
+        <div style="font-size:11px;font-weight:700;color:var(--mid);margin-bottom:7px">فلترة بشهر الميلاد</div>
+        <div class="bd-grid"><button type="button" class="bd-m" data-m="1" onclick="setBMonth(1)">يناير</button><button type="button" class="bd-m" data-m="2" onclick="setBMonth(2)">فبراير</button><button type="button" class="bd-m" data-m="3" onclick="setBMonth(3)">مارس</button><button type="button" class="bd-m" data-m="4" onclick="setBMonth(4)">أبريل</button><button type="button" class="bd-m" data-m="5" onclick="setBMonth(5)">مايو</button><button type="button" class="bd-m" data-m="6" onclick="setBMonth(6)">يونيو</button><button type="button" class="bd-m" data-m="7" onclick="setBMonth(7)">يوليو</button><button type="button" class="bd-m" data-m="8" onclick="setBMonth(8)">أغسطس</button><button type="button" class="bd-m" data-m="9" onclick="setBMonth(9)">سبتمبر</button><button type="button" class="bd-m" data-m="10" onclick="setBMonth(10)">أكتوبر</button><button type="button" class="bd-m" data-m="11" onclick="setBMonth(11)">نوفمبر</button><button type="button" class="bd-m" data-m="12" onclick="setBMonth(12)">ديسمبر</button><button type="button" class="bd-m" data-m="" style="grid-column:1/-1" onclick="setBMonth('')">كل الشهور</button></div>
       </div>
     </div>
 
