@@ -1072,6 +1072,8 @@ function rcl(f){
   const now=new Date(), mo=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
   let list=[...D.cls];
   if(f) list=list.filter(c=>c.name.includes(f)||(c.mobile||'').includes(f));
+  const bmonth=document.getElementById('cl-bmonth')?.value||'';
+  if(bmonth) list=list.filter(c=>c.birthday && parseInt(c.birthday.split('-')[1])===parseInt(bmonth));
   document.getElementById('cl-tot').textContent=D.cls.length;
   const mvisTot=D.invs.filter(i=>i.date?.startsWith(mo)).length;
   document.getElementById('cl-vis').textContent=mvisTot;
@@ -1090,9 +1092,13 @@ function rcl(f){
     if(sortBy==='visits') return b.invs.length-a.invs.length;
     if(sortBy==='ltv') return b.ltv-a.ltv;
     if(sortBy==='lastvisit') return (b.last?.date||'').localeCompare(a.last?.date||'');
+    if(sortBy==='lastvisit_old'){ // longest since last visit first; clients with no visits go last
+      if(!a.last&&!b.last) return 0; if(!a.last) return 1; if(!b.last) return -1;
+      return a.last.date.localeCompare(b.last.date);
+    }
     return (b.c.createdAt||'').localeCompare(a.c.createdAt||''); // newest (default)
   });
-  if(!rows.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--light);padding:24px">لا توجد عميلات بعد.</td></tr>';return;}
+  if(!rows.length){tb.innerHTML=`<tr><td colspan="7" style="text-align:center;color:var(--light);padding:24px">${(f||bmonth)?'لا توجد عميلات مطابقة.':'لا توجد عميلات بعد.'}</td></tr>`;return;}
   tb.innerHTML=rows.map(({c,invs,ltv,last})=>{
     const bday=c.birthday?pld(c.birthday):null;
     const isBday=bday&&bday.getMonth()===now.getMonth()&&bday.getDate()===now.getDate();

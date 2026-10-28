@@ -292,7 +292,24 @@
             <option value="az">الاسم (أ-ي)</option>
             <option value="visits">الأكثر عودة (زيارات)</option>
             <option value="ltv">الأعلى إنفاقًا</option>
-            <option value="lastvisit">آخر زيارة</option>
+            <option value="lastvisit">آخر زيارة (الأحدث أولًا)</option>
+            <option value="lastvisit_old">آخر زيارة (الأقدم أولًا)</option>
+          </select>
+          <label style="font-size:12px;font-weight:700;color:var(--mid)">شهر الميلاد:</label>
+          <select class="msel" id="cl-bmonth" onchange="rcl()">
+            <option value="">الكل</option>
+            <option value="1">يناير</option>
+            <option value="2">فبراير</option>
+            <option value="3">مارس</option>
+            <option value="4">أبريل</option>
+            <option value="5">مايو</option>
+            <option value="6">يونيو</option>
+            <option value="7">يوليو</option>
+            <option value="8">أغسطس</option>
+            <option value="9">سبتمبر</option>
+            <option value="10">أكتوبر</option>
+            <option value="11">نوفمبر</option>
+            <option value="12">ديسمبر</option>
           </select>
         </div>
         <button class="btn btn-p" onclick="openClMod()">+ إضافة عميلة</button>
