@@ -186,14 +186,18 @@ try{ const s=localStorage.getItem('nelle3'); if(s) D={...D,...JSON.parse(s)}; }c
 function sv(){ localStorage.setItem('nelle3',JSON.stringify(D)); }
 
 // Full sync from Supabase → local D
-async function syncFromDB(silent) {
+let lastSync=0;
+async function syncFromDB(silent, light) {
+  lastSync=Date.now();
   if(!silent) showSyncStatus('جاري تحميل البيانات...');
   try {
+    // light (background) refresh skips tables that rarely change, to save Supabase egress
+    const sk = ()=>null;
     const [cls, bks, invs, exps, techs, offers, waitlist, stock, purchases, settings, cashw] = await Promise.all([
       sbGet('nelle_clients'), sbGet('nelle_bookings'), sbGet('nelle_invoices'),
-      sbGet('nelle_expenses'), sbGet('nelle_techs'), sbGet('nelle_offers'),
-      sbGet('nelle_waitlist'), sbGet('nelle_stock'), sbGet('nelle_purchases'),
-      sbGet('nelle_settings'), sbGet('nelle_cash_withdrawals')
+      sbGet('nelle_expenses'), light?sk():sbGet('nelle_techs'), light?sk():sbGet('nelle_offers'),
+      light?sk():sbGet('nelle_waitlist'), light?sk():sbGet('nelle_stock'), light?sk():sbGet('nelle_purchases'),
+      light?sk():sbGet('nelle_settings'), sbGet('nelle_cash_withdrawals')
     ]);
     if (cls) D.cls = cls.map(r=>({...r.data, id:r.id}));
     if (bks) D.bks = bks.map(r=>({...r.data, id:r.id}));
@@ -232,10 +236,14 @@ async function syncFromDB(silent) {
 // Every 60 seconds, quietly pull the latest data from Supabase so multiple
 // staff members on different devices stay in sync. Skipped while any modal
 // (add/edit form) is open, so it never overwrites something mid-edit.
-setInterval(()=>{
+// Egress saving: every 5 min, only while the tab is visible, light tables only.
+function bgSync(){
+  if(document.hidden) return;
   if(document.querySelector('.ov.on')) return; // a modal is open — don't disturb it
-  syncFromDB(true);
-}, 60000);
+  syncFromDB(true, true);
+}
+setInterval(bgSync, 300000);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden && Date.now()-lastSync>180000) bgSync(); });
 
 // Save a single record to Supabase
 async function svRecord(table, record) {
